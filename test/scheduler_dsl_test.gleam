@@ -1,6 +1,11 @@
+import gleeunit
 import gleeunit/should
 import library/lexer.{lex}
 import library/token
+
+pub fn main() {
+  gleeunit.main()
+}
 
 pub fn lex_simple_interval_test() {
   lex("every 5 minutes")
