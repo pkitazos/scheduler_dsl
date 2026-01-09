@@ -76,16 +76,21 @@ pub type TimeRange {
   TimeRange(from: Time, to: Time)
 }
 
-/// Date for bounds (no time component)
+/// Date and optional time "2024-01-01 at 09:00" or "2024-01-01"
+pub type BoundPoint {
+  BoundPoint(date: Date, time: Option(Time))
+}
+
+/// 2026-01-10
 pub type Date {
   Date(year: Int, month: Int, day: Int)
 }
 
 /// "starting ...", "until ...", "from ... until ..."
 pub type Bounds {
-  Starting(Date)
-  Until(Date)
-  Between(from: Date, to: Date)
+  Starting(BoundPoint)
+  Until(BoundPoint)
+  Between(from: BoundPoint, to: BoundPoint)
 }
 
 /// "except weekends", "except between 22:00 and 6:00"
