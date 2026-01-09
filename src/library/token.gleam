@@ -30,16 +30,16 @@ pub type Token {
 
   // Day groups
   Weekdays
-  Weekend
+  Weekends
 
   // Days of week
-  Monday
-  Tuesday
-  Wednesday
-  Thursday
-  Friday
-  Saturday
-  Sunday
+  Mon
+  Tue
+  Wed
+  Thu
+  Fri
+  Sat
+  Sun
 
   // Ordinal positions
   First

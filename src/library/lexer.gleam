@@ -4,10 +4,9 @@ import gleam/result
 import gleam/string
 import library/token.{
   type Token, And, Annually, At, Between, Comma, Daily, DateLiteral, Day, Days,
-  Every, Except, First, Fourth, Friday, From, Hour, Hourly, Hours, Integer, Last,
-  Minute, Minutes, Monday, Monthly, On, Ordinal, Saturday, Second, Seconds,
-  Starting, Sunday, The, Third, Thursday, TimeLiteral, Tuesday, Until, Wednesday,
-  Weekdays, Weekend, Weekly,
+  Every, Except, First, Fourth, Fri, From, Hour, Hourly, Hours, Integer, Last,
+  Minute, Minutes, Mon, Monthly, On, Ordinal, Sat, Second, Seconds, Starting,
+  Sun, The, Third, Thu, TimeLiteral, Tue, Until, Wed, Weekdays, Weekends, Weekly,
 }
 
 pub type LexError {
@@ -117,16 +116,16 @@ fn lex_word_or_number(input: String) -> Result(#(Token, String), LexError) {
 
     // Day groups
     "weekdays" -> Ok(#(Weekdays, rest))
-    "weekend" -> Ok(#(Weekend, rest))
+    "weekend" -> Ok(#(Weekends, rest))
 
     // Days
-    "monday" -> Ok(#(Monday, rest))
-    "tuesday" -> Ok(#(Tuesday, rest))
-    "wednesday" -> Ok(#(Wednesday, rest))
-    "thursday" -> Ok(#(Thursday, rest))
-    "friday" -> Ok(#(Friday, rest))
-    "saturday" -> Ok(#(Saturday, rest))
-    "sunday" -> Ok(#(Sunday, rest))
+    "monday" -> Ok(#(Mon, rest))
+    "tuesday" -> Ok(#(Tue, rest))
+    "wednesday" -> Ok(#(Wed, rest))
+    "thursday" -> Ok(#(Thu, rest))
+    "friday" -> Ok(#(Fri, rest))
+    "saturday" -> Ok(#(Sat, rest))
+    "sunday" -> Ok(#(Sun, rest))
 
     // Ordinal positions
     "first" -> Ok(#(First, rest))

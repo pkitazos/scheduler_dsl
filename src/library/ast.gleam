@@ -19,6 +19,7 @@ pub type Frequency {
   Daily
   Weekly
   Monthly
+  Annually
 }
 
 pub type TimeUnit {
