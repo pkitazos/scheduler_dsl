@@ -4,11 +4,12 @@ import gleam/result
 import gleam/string
 import library/ast.{
   type DayOfWeek, type Days, type Exclusion, type Frequency, type Ordinal,
-  type Position, type Time, type TimeRange, type Timing,
+  type Position, type Schedule, type Time, type TimeRange, type Timing,
 }
 import library/token.{type Token}
 
 pub type ParseError {
+  InvalidSchedule(String)
   InvalidFrequency(String)
   InvalidTiming(String)
   InvalidDays(String)
@@ -17,7 +18,30 @@ pub type ParseError {
   InvalidExclusion(String)
 }
 
-pub fn parse_frequency(
+pub fn parse(tokens: List(Token)) -> Result(Schedule, ParseError) {
+  use #(freq, rest) <- result.try(parse_frequency(tokens))
+  use #(timing, rest) <- result.try(parse_timing(rest))
+  use #(days, rest) <- result.try(parse_days(rest))
+  use #(time_range, rest) <- result.try(parse_time_range(rest))
+  use #(bounds, rest) <- result.try(parse_bounds(rest))
+  use #(exclusion, rest) <- result.try(parse_exclusion(rest))
+
+  case rest {
+    [] ->
+      Ok(ast.Schedule(
+        frequency: freq,
+        timing: timing,
+        days: days,
+        time_range: time_range,
+        bounds: bounds,
+        exclusion: exclusion,
+      ))
+
+    rest -> Error(InvalidSchedule(string.inspect(rest)))
+  }
+}
+
+fn parse_frequency(
   tokens: List(Token),
 ) -> Result(#(Option(Frequency), List(Token)), ParseError) {
   case tokens {
@@ -66,7 +90,7 @@ pub fn parse_frequency(
   }
 }
 
-pub fn parse_timing(
+fn parse_timing(
   tokens: List(Token),
 ) -> Result(#(Option(Timing), List(Token)), ParseError) {
   case tokens {
@@ -100,7 +124,7 @@ fn parse_time_list(
   }
 }
 
-pub fn parse_days(
+fn parse_days(
   tokens: List(Token),
 ) -> Result(#(Option(Days), List(Token)), ParseError) {
   case tokens {
@@ -237,7 +261,7 @@ fn token_to_position(tok: Token) -> Result(Position, ParseError) {
   }
 }
 
-pub fn parse_time_range(
+fn parse_time_range(
   tokens: List(Token),
 ) -> Result(#(Option(TimeRange), List(Token)), ParseError) {
   case tokens {
@@ -269,7 +293,7 @@ pub fn parse_time_range(
   }
 }
 
-pub fn parse_bounds(
+fn parse_bounds(
   tokens: List(Token),
 ) -> Result(#(Option(ast.Bounds), List(Token)), ParseError) {
   case tokens {
@@ -452,7 +476,7 @@ pub fn parse_bounds(
   }
 }
 
-pub fn parse_exclusion(
+fn parse_exclusion(
   tokens: List(Token),
 ) -> Result(#(Option(Exclusion), List(Token)), ParseError) {
   case tokens {
