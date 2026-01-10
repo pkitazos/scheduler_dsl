@@ -116,7 +116,7 @@ fn lex_word_or_number(input: String) -> Result(#(Token, String), LexError) {
 
     // Day groups
     "weekdays" -> Ok(#(Weekdays, rest))
-    "weekend" -> Ok(#(Weekends, rest))
+    "weekends" -> Ok(#(Weekends, rest))
 
     // Days
     "monday" -> Ok(#(Mon, rest))

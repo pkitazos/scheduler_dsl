@@ -1,8 +1,7 @@
 import gleam/io
 import gleam/string
-import simplifile
-
 import library/lexer
+import simplifile
 
 pub fn main() {
   case simplifile.read("schedule.txt") {
