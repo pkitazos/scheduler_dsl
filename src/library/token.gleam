@@ -10,6 +10,7 @@ pub type Token {
   Starting
   Until
   From
+  To
 
   // Frequency shortcuts
   Hourly
@@ -27,6 +28,12 @@ pub type Token {
   Hours
   Day
   Days
+  Week
+  Weeks
+  Month
+  Months
+  Year
+  Years
 
   // Day groups
   Weekdays
@@ -46,6 +53,7 @@ pub type Token {
   // Second covered by unit second
   Third
   Fourth
+  Fifth
   Last
 
   // Literals

@@ -4,9 +4,10 @@ import gleam/result
 import gleam/string
 import library/token.{
   type Token, And, Annually, At, Between, Comma, Daily, DateLiteral, Day, Days,
-  Every, Except, First, Fourth, Fri, From, Hour, Hourly, Hours, Integer, Last,
-  Minute, Minutes, Mon, Monthly, On, Ordinal, Sat, Second, Seconds, Starting,
-  Sun, The, Third, Thu, TimeLiteral, Tue, Until, Wed, Weekdays, Weekends, Weekly,
+  Every, Except, Fifth, First, Fourth, Fri, From, Hour, Hourly, Hours, Integer,
+  Last, Minute, Minutes, Mon, Month, Monthly, Months, On, Ordinal, Sat, Second,
+  Seconds, Starting, Sun, The, Third, Thu, TimeLiteral, To, Tue, Until, Wed,
+  Week, Weekdays, Weekends, Weekly, Weeks, Year, Years,
 }
 
 pub type LexError {
@@ -96,6 +97,7 @@ fn lex_word_or_number(input: String) -> Result(#(Token, String), LexError) {
     "starting" -> Ok(#(Starting, rest))
     "until" -> Ok(#(Until, rest))
     "from" -> Ok(#(From, rest))
+    "to" -> Ok(#(To, rest))
 
     // Frequency shortcuts
     "hourly" -> Ok(#(Hourly, rest))
@@ -113,6 +115,12 @@ fn lex_word_or_number(input: String) -> Result(#(Token, String), LexError) {
     "hours" -> Ok(#(Hours, rest))
     "day" -> Ok(#(Day, rest))
     "days" -> Ok(#(Days, rest))
+    "week" -> Ok(#(Week, rest))
+    "weeks" -> Ok(#(Weeks, rest))
+    "month" -> Ok(#(Month, rest))
+    "months" -> Ok(#(Months, rest))
+    "year" -> Ok(#(Year, rest))
+    "years" -> Ok(#(Years, rest))
 
     // Day groups
     "weekdays" -> Ok(#(Weekdays, rest))
@@ -132,6 +140,7 @@ fn lex_word_or_number(input: String) -> Result(#(Token, String), LexError) {
     // second handled in units
     "third" -> Ok(#(Third, rest))
     "fourth" -> Ok(#(Fourth, rest))
+    "fifth" -> Ok(#(Fifth, rest))
     "last" -> Ok(#(Last, rest))
 
     // Ordinals like "1st", "2nd", "3rd", "15th"
