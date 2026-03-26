@@ -335,18 +335,18 @@ pub fn bounds_starting_test() {
 
 // Currently FAILS — parser matches "starting date" alone, leaving
 // "until date" unconsumed. Needs "starting date until date" pattern.
-// pub fn bounds_starting_until_test() {
-//   parse("starting 2024-01-01 until 2024-12-31")
-//   |> should.equal(Ok(
-//     ast.Schedule(
-//       ..schedule(),
-//       bounds: Some(ast.Between(
-//         from: ast.BoundPoint(date: ast.Date(2024, 1, 1), time: None),
-//         to: ast.BoundPoint(date: ast.Date(2024, 12, 31), time: None),
-//       )),
-//     ),
-//   ))
-// }
+pub fn bounds_starting_until_test() {
+  parse("starting 2024-01-01 until 2024-12-31")
+  |> should.equal(Ok(
+    ast.Schedule(
+      ..schedule(),
+      bounds: Some(ast.Between(
+        from: ast.BoundPoint(date: ast.Date(2024, 1, 1), time: None),
+        to: ast.BoundPoint(date: ast.Date(2024, 12, 31), time: None),
+      )),
+    ),
+  ))
+}
 
 // ── Exclusions ──────────────────────────────────────────────────────
 // exclusion  := "except" on_clause | "except" time_clause

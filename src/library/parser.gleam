@@ -316,6 +316,114 @@ fn parse_bounds(
   case tokens {
     [
       token.Starting,
+      token.DateLiteral(year1, month1, day1),
+      token.At,
+      token.TimeLiteral(hour1, minute1),
+      token.Until,
+      token.DateLiteral(year2, month2, day2),
+      token.At,
+      token.TimeLiteral(hour2, minute2),
+      ..rest
+    ] -> {
+      Ok(#(
+        Some(ast.Between(
+          from: ast.BoundPoint(
+            date: ast.Date(year: year1, month: month1, day: day1),
+            time: Some(ast.Time(hour: hour1, minute: minute1)),
+          ),
+          to: ast.BoundPoint(
+            date: ast.Date(year: year2, month: month2, day: day2),
+            time: Some(ast.Time(hour: hour2, minute: minute2)),
+          ),
+        )),
+        rest,
+      ))
+    }
+
+    [
+      token.Starting,
+      token.DateLiteral(year1, month1, day1),
+      token.At,
+      token.TimeLiteral(hour1, minute1),
+      token.Until,
+      token.DateLiteral(year2, month2, day2),
+      ..rest
+    ] -> {
+      Ok(#(
+        Some(ast.Between(
+          from: ast.BoundPoint(
+            date: ast.Date(year: year1, month: month1, day: day1),
+            time: Some(ast.Time(hour: hour1, minute: minute1)),
+          ),
+          to: ast.BoundPoint(
+            date: ast.Date(year: year2, month: month2, day: day2),
+            time: None,
+          ),
+        )),
+        rest,
+      ))
+    }
+
+    [
+      token.Starting,
+      token.DateLiteral(year1, month1, day1),
+      token.Until,
+      token.DateLiteral(year2, month2, day2),
+      token.At,
+      token.TimeLiteral(hour2, minute2),
+      ..rest
+    ] -> {
+      Ok(#(
+        Some(ast.Between(
+          from: ast.BoundPoint(
+            date: ast.Date(year: year1, month: month1, day: day1),
+            time: None,
+          ),
+          to: ast.BoundPoint(
+            date: ast.Date(year: year2, month: month2, day: day2),
+            time: Some(ast.Time(hour: hour2, minute: minute2)),
+          ),
+        )),
+        rest,
+      ))
+    }
+
+    [
+      token.Starting,
+      token.DateLiteral(year1, month1, day1),
+      token.Until,
+      token.DateLiteral(year2, month2, day2),
+      ..rest
+    ] -> {
+      Ok(#(
+        Some(ast.Between(
+          from: ast.BoundPoint(
+            date: ast.Date(year: year1, month: month1, day: day1),
+            time: None,
+          ),
+          to: ast.BoundPoint(
+            date: ast.Date(year: year2, month: month2, day: day2),
+            time: None,
+          ),
+        )),
+        rest,
+      ))
+    }
+
+    [
+      token.Starting,
+      token.DateLiteral(_, _, _),
+      token.At,
+      token.TimeLiteral(_, _),
+      token.Until,
+      ..
+    ] -> Error(InvalidBounds("expected date after `until`"))
+
+    [token.Starting, token.DateLiteral(_, _, _), token.Until, ..] ->
+      Error(InvalidBounds("expected date after `until`"))
+
+    [
+      token.Starting,
       token.DateLiteral(year, month, day),
       token.At,
       token.TimeLiteral(hour, minute),
@@ -344,149 +452,8 @@ fn parse_bounds(
       ))
     }
 
-    [
-      token.From,
-      token.DateLiteral(year1, month1, day1),
-      token.At,
-      token.TimeLiteral(hour1, minute1),
-      token.Until,
-      token.DateLiteral(year2, month2, day2),
-      token.At,
-      token.TimeLiteral(hour2, minute2),
-      ..rest
-    ] -> {
-      Ok(#(
-        Some(ast.Between(
-          from: ast.BoundPoint(
-            date: ast.Date(year: year1, month: month1, day: day1),
-            time: Some(ast.Time(hour: hour1, minute: minute1)),
-          ),
-          to: ast.BoundPoint(
-            date: ast.Date(year: year2, month: month2, day: day2),
-            time: Some(ast.Time(hour: hour2, minute: minute2)),
-          ),
-        )),
-        rest,
-      ))
-    }
-    [
-      token.From,
-      token.DateLiteral(year1, month1, day1),
-      token.At,
-      token.TimeLiteral(hour1, minute1),
-      token.Until,
-      token.DateLiteral(year2, month2, day2),
-      ..rest
-    ] -> {
-      Ok(#(
-        Some(ast.Between(
-          from: ast.BoundPoint(
-            date: ast.Date(year: year1, month: month1, day: day1),
-            time: Some(ast.Time(hour: hour1, minute: minute1)),
-          ),
-          to: ast.BoundPoint(
-            date: ast.Date(year: year2, month: month2, day: day2),
-            time: None,
-          ),
-        )),
-        rest,
-      ))
-    }
-
-    [
-      token.From,
-      token.DateLiteral(year1, month1, day1),
-      token.Until,
-      token.DateLiteral(year2, month2, day2),
-      token.At,
-      token.TimeLiteral(hour2, minute2),
-      ..rest
-    ] -> {
-      Ok(#(
-        Some(ast.Between(
-          from: ast.BoundPoint(
-            date: ast.Date(year: year1, month: month1, day: day1),
-            time: None,
-          ),
-          to: ast.BoundPoint(
-            date: ast.Date(year: year2, month: month2, day: day2),
-            time: Some(ast.Time(hour: hour2, minute: minute2)),
-          ),
-        )),
-        rest,
-      ))
-    }
-
-    [
-      token.From,
-      token.DateLiteral(year1, month1, day1),
-      token.Until,
-      token.DateLiteral(year2, month2, day2),
-      ..rest
-    ] -> {
-      Ok(#(
-        Some(ast.Between(
-          from: ast.BoundPoint(
-            date: ast.Date(year: year1, month: month1, day: day1),
-            time: None,
-          ),
-          to: ast.BoundPoint(
-            date: ast.Date(year: year2, month: month2, day: day2),
-            time: None,
-          ),
-        )),
-        rest,
-      ))
-    }
-
-    [
-      token.Until,
-      token.DateLiteral(year, month, day),
-      token.At,
-      token.TimeLiteral(hour, minute),
-      ..rest
-    ] -> {
-      Ok(#(
-        Some(
-          ast.Until(ast.BoundPoint(
-            date: ast.Date(year: year, month: month, day: day),
-            time: Some(ast.Time(hour: hour, minute: minute)),
-          )),
-        ),
-        rest,
-      ))
-    }
-
-    [token.Until, token.DateLiteral(year, month, day), ..rest] -> {
-      Ok(#(
-        Some(
-          ast.Until(ast.BoundPoint(
-            date: ast.Date(year: year, month: month, day: day),
-            time: None,
-          )),
-        ),
-        rest,
-      ))
-    }
-
     [token.Starting, ..] ->
       Error(InvalidBounds("expected date after `starting`"))
-    [
-      token.From,
-      token.DateLiteral(_, _, _),
-      token.At,
-      token.TimeLiteral(_, _),
-      token.Until,
-      ..
-    ] -> Error(InvalidBounds("expected date after `until`"))
-
-    [token.From, token.DateLiteral(_, _, _), token.Until, ..] ->
-      Error(InvalidBounds("expected date after `until`"))
-
-    [token.From, token.DateLiteral(_, _, _), ..] ->
-      Error(InvalidBounds("expected `until` after `from` date"))
-
-    [token.From, ..] -> Error(InvalidBounds("expected date after 'from'"))
 
     [token.Until, ..] -> Error(InvalidBounds("expected date after `until`"))
     _ -> Ok(#(None, tokens))
