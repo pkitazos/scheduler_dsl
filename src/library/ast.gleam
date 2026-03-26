@@ -27,6 +27,9 @@ pub type TimeUnit {
   Minutes
   Hours
   Days
+  Weeks
+  Months
+  Years
 }
 
 /// "at 9:00" or "at 9:00, 12:00, and 17:00"
@@ -68,6 +71,7 @@ pub type Position {
   Second
   Third
   Fourth
+  Fifth
   LastPos
 }
 

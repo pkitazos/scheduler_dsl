@@ -59,6 +59,12 @@ fn parse_frequency(
       Ok(#(Some(ast.Every(1, ast.Hours)), rest))
     [token.Every, token.Day, ..rest] ->
       Ok(#(Some(ast.Every(1, ast.Days)), rest))
+    [token.Every, token.Week, ..rest] ->
+      Ok(#(Some(ast.Every(1, ast.Weeks)), rest))
+    [token.Every, token.Month, ..rest] ->
+      Ok(#(Some(ast.Every(1, ast.Months)), rest))
+    [token.Every, token.Year, ..rest] ->
+      Ok(#(Some(ast.Every(1, ast.Years)), rest))
 
     [token.Every, token.Integer(n), token.Seconds, ..rest] ->
       Ok(#(Some(ast.Every(n, ast.Seconds)), rest))
@@ -68,6 +74,12 @@ fn parse_frequency(
       Ok(#(Some(ast.Every(n, ast.Hours)), rest))
     [token.Every, token.Integer(n), token.Days, ..rest] ->
       Ok(#(Some(ast.Every(n, ast.Days)), rest))
+    [token.Every, token.Integer(n), token.Weeks, ..rest] ->
+      Ok(#(Some(ast.Every(n, ast.Weeks)), rest))
+    [token.Every, token.Integer(n), token.Months, ..rest] ->
+      Ok(#(Some(ast.Every(n, ast.Months)), rest))
+    [token.Every, token.Integer(n), token.Years, ..rest] ->
+      Ok(#(Some(ast.Every(n, ast.Years)), rest))
 
     [token.Every, token.Integer(n), other, ..] ->
       Error(InvalidFrequency(
@@ -137,7 +149,7 @@ fn parse_days(
     }
 
     [token.On, token.The, token.Last, day_token, ..rest] -> {
-      case token_to_day(day_token) {
+      case token_to_weekday(day_token) {
         Ok(day) -> {
           use #(rest_days, rest2) <- result.try(parse_ord_day_list(rest))
           Ok(#(
@@ -156,9 +168,14 @@ fn parse_days(
       }
     }
 
+    [token.On, token.The, token.Last, ..rest] -> {
+      use #(rest_days, rest2) <- result.try(parse_ord_day_list(rest))
+      Ok(#(Some(ast.OrdinalDays([ast.Last, ..rest_days])), rest2))
+    }
+
     [token.On, token.The, position_token, day_token, ..rest] -> {
-      use day <- result.try(token_to_day(day_token))
-      use pos <- result.try(token_to_position(position_token))
+      use day <- result.try(token_to_weekday(day_token))
+      use pos <- result.try(token_to_ordinal_position(position_token))
       use #(rest_days, rest2) <- result.try(parse_ord_day_list(rest))
       Ok(#(
         Some(ast.OrdinalDays([ast.NthWeekday(pos, day), ..rest_days])),
@@ -167,7 +184,7 @@ fn parse_days(
     }
 
     [token.On, day_token, ..rest] -> {
-      use day <- result.try(token_to_day(day_token))
+      use day <- result.try(token_to_weekday(day_token))
       use #(rest_days, rest2) <- result.try(parse_day_of_week_list(rest))
       Ok(#(Some(ast.SpecificDays([day, ..rest_days])), rest2))
     }
@@ -186,8 +203,8 @@ fn parse_ord_day_list(
     }
 
     [token.Comma, position_token, day_token, ..rest] -> {
-      use pos <- result.try(token_to_position(position_token))
-      use day <- result.try(token_to_day(day_token))
+      use pos <- result.try(token_to_ordinal_position(position_token))
+      use day <- result.try(token_to_weekday(day_token))
       use #(more, rest2) <- result.try(parse_ord_day_list(rest))
       Ok(#([ast.NthWeekday(pos, day), ..more], rest2))
     }
@@ -200,8 +217,8 @@ fn parse_ord_day_list(
     [token.And, token.Ordinal(n), ..rest] -> Ok(#([ast.DayOfMonth(n)], rest))
 
     [token.And, position_token, day_token, ..rest] -> {
-      use pos <- result.try(token_to_position(position_token))
-      use day <- result.try(token_to_day(day_token))
+      use pos <- result.try(token_to_ordinal_position(position_token))
+      use day <- result.try(token_to_weekday(day_token))
       Ok(#([ast.NthWeekday(pos, day)], rest))
     }
 
@@ -219,13 +236,13 @@ fn parse_day_of_week_list(
 ) -> Result(#(List(DayOfWeek), List(Token)), ParseError) {
   case tokens {
     [token.Comma, day_token, ..rest] -> {
-      use day <- result.try(token_to_day(day_token))
+      use day <- result.try(token_to_weekday(day_token))
       use #(more, rest2) <- result.try(parse_day_of_week_list(rest))
       Ok(#([day, ..more], rest2))
     }
 
     [token.And, day_token, ..rest] -> {
-      use day <- result.try(token_to_day(day_token))
+      use day <- result.try(token_to_weekday(day_token))
       Ok(#([day], rest))
     }
 
@@ -237,7 +254,7 @@ fn parse_day_of_week_list(
   }
 }
 
-fn token_to_day(tok: Token) -> Result(DayOfWeek, ParseError) {
+fn token_to_weekday(tok: Token) -> Result(DayOfWeek, ParseError) {
   case tok {
     token.Mon -> Ok(ast.Mon)
     token.Tue -> Ok(ast.Tue)
@@ -250,12 +267,13 @@ fn token_to_day(tok: Token) -> Result(DayOfWeek, ParseError) {
   }
 }
 
-fn token_to_position(tok: Token) -> Result(Position, ParseError) {
+fn token_to_ordinal_position(tok: Token) -> Result(Position, ParseError) {
   case tok {
     token.First -> Ok(ast.First)
     token.Second -> Ok(ast.Second)
     token.Third -> Ok(ast.Third)
     token.Fourth -> Ok(ast.Fourth)
+    token.Fifth -> Ok(ast.Fifth)
     token.Last -> Ok(ast.LastPos)
     _ -> Error(InvalidDays("expected position"))
   }
@@ -266,9 +284,9 @@ fn parse_time_range(
 ) -> Result(#(Option(TimeRange), List(Token)), ParseError) {
   case tokens {
     [
-      token.Between,
+      token.From,
       token.TimeLiteral(h1, m1),
-      token.And,
+      token.To,
       token.TimeLiteral(h2, m2),
       ..rest
     ] ->
@@ -280,14 +298,13 @@ fn parse_time_range(
         rest,
       ))
 
-    [token.Between, token.TimeLiteral(_, _), token.And, ..] ->
-      Error(InvalidTimeRange("expected time after `and`"))
+    [token.From, token.TimeLiteral(_, _), token.To, ..] ->
+      Error(InvalidTimeRange("expected time after `to`"))
 
-    [token.Between, token.TimeLiteral(_, _), ..] ->
-      Error(InvalidTimeRange("expected `and` after first time"))
+    [token.From, token.TimeLiteral(_, _), ..] ->
+      Error(InvalidTimeRange("expected `to` after first time"))
 
-    [token.Between, ..] ->
-      Error(InvalidTimeRange("expected time after `between`"))
+    [token.From, ..] -> Error(InvalidTimeRange("expected time after `from`"))
 
     _ -> Ok(#(None, tokens))
   }

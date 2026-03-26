@@ -43,7 +43,6 @@ ordinal_suffix   := "st" | "nd" | "rd" | "th"
 
 bare_ordinal     := number ordinal_suffix
                   | "last"
-                  | "last" "day"
 
 word_ordinal     := "first" | "second" | "third" | "fourth" | "fifth" | "last"
 qualified_ordinal := word_ordinal day
