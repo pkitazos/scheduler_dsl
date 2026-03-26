@@ -333,8 +333,6 @@ pub fn bounds_starting_test() {
   ))
 }
 
-// Currently FAILS — parser matches "starting date" alone, leaving
-// "until date" unconsumed. Needs "starting date until date" pattern.
 pub fn bounds_starting_until_test() {
   parse("starting 2024-01-01 until 2024-12-31")
   |> should.equal(Ok(
@@ -348,35 +346,80 @@ pub fn bounds_starting_until_test() {
   ))
 }
 
+pub fn bounds_starting_no_date_test() {
+  parse("starting")
+  |> should.equal(Error(parser.InvalidBounds("expected date after `starting`")))
+}
+
+pub fn bounds_starting_until_no_end_date_test() {
+  parse("starting 2024-01-01 until")
+  |> should.equal(Error(parser.InvalidBounds("expected date after `until`")))
+}
+
+pub fn bounds_starting_until_with_time_schedule_test() {
+  parse("starting 2024-01-01 at 09:00 until 2024-12-31 at 17:00")
+  |> should.equal(Ok(
+    ast.Schedule(
+      ..schedule(),
+      bounds: Some(ast.Between(
+        from: ast.BoundPoint(
+          date: ast.Date(2024, 1, 1),
+          time: Some(ast.Time(9, 0)),
+        ),
+        to: ast.BoundPoint(
+          date: ast.Date(2024, 12, 31),
+          time: Some(ast.Time(17, 0)),
+        ),
+      )),
+    ),
+  ))
+}
+
 // ── Exclusions ──────────────────────────────────────────────────────
 // exclusion  := "except" on_clause | "except" time_clause
 // exclusions := exclusion+
 
-pub fn exclusion_except_on_clause_test() {
+pub fn exclusion_except_on_clause_group_test() {
   parse("except on weekends")
   |> should.equal(Ok(
     ast.Schedule(..schedule(), exclusion: Some(ast.ExceptDays(ast.Weekends))),
   ))
 }
 
-// TODO: except on monday
-// TODO: except on the 1st
+pub fn exclusion_except_on_clause_day_test() {
+  parse("except on monday")
+  |> should.equal(Ok(
+    ast.Schedule(
+      ..schedule(),
+      exclusion: Some(ast.ExceptDays(ast.SpecificDays([ast.Mon]))),
+    ),
+  ))
+}
 
-// Currently FAILS — parser uses "except between...and", not "except from...to"
-// pub fn exclusion_except_from_to_test() {
-//   parse("except from 22:00 to 06:00")
-//   |> should.equal(Ok(
-//     ast.Schedule(
-//       ..schedule(),
-//       exclusion: Some(
-//         ast.ExceptTimeRange(ast.TimeRange(
-//           from: ast.Time(22, 0),
-//           to: ast.Time(6, 0),
-//         )),
-//       ),
-//     ),
-//   ))
-// }
+pub fn exclusion_except_on_clause_ordinal_test() {
+  parse("except on the 1st")
+  |> should.equal(Ok(
+    ast.Schedule(
+      ..schedule(),
+      exclusion: Some(ast.ExceptDays(ast.OrdinalDays([ast.DayOfMonth(1)]))),
+    ),
+  ))
+}
+
+pub fn exclusion_except_from_to_test() {
+  parse("except from 22:00 to 06:00")
+  |> should.equal(Ok(
+    ast.Schedule(
+      ..schedule(),
+      exclusion: Some(
+        ast.ExceptTimeRange(ast.TimeRange(
+          from: ast.Time(22, 0),
+          to: ast.Time(6, 0),
+        )),
+      ),
+    ),
+  ))
+}
 
 // TODO: except at 12:00 — not supported yet (spec: "except" time_clause)
 // TODO: except at 12:00 and 13:00

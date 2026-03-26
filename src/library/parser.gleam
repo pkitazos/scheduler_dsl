@@ -464,14 +464,14 @@ fn parse_exclusion(
   tokens: List(Token),
 ) -> Result(#(Option(Exclusion), List(Token)), ParseError) {
   case tokens {
-    [token.Except, token.Between, ..rest] -> {
+    [token.Except, token.From, ..rest] -> {
       use #(maybe_time_range, rest2) <- result.try(
-        parse_time_range([token.Between, ..rest]),
+        parse_time_range([token.From, ..rest]),
       )
       case maybe_time_range {
         Some(time_range) -> Ok(#(Some(ast.ExceptTimeRange(time_range)), rest2))
         None ->
-          Error(InvalidExclusion("expected time range after 'except between'"))
+          Error(InvalidExclusion("expected time range after 'except from'"))
       }
     }
 
