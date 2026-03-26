@@ -30,11 +30,11 @@ frequency        := "every" number unit | frequency_sugar
 ```
 day_list         := day
                   | day "and" day
-                  | day ("," day)* "," "and" day
+                  | day ("," day)* "and" day
 
 time_list        := time
                   | time "and" time
-                  | time ("," time)* "," "and" time
+                  | time ("," time)* "and" time
 ```
 
 ### Ordinals
@@ -50,11 +50,11 @@ qualified_ordinal := word_ordinal day
 
 bare_ordinal_list      := bare_ordinal
                         | bare_ordinal "and" bare_ordinal
-                        | bare_ordinal ("," bare_ordinal)* "," "and" bare_ordinal
+                        | bare_ordinal ("," bare_ordinal)* "and" bare_ordinal
 
 qualified_ordinal_list := qualified_ordinal
                         | qualified_ordinal "and" qualified_ordinal
-                        | qualified_ordinal ("," qualified_ordinal)* "," "and" qualified_ordinal
+                        | qualified_ordinal ("," qualified_ordinal)* "and" qualified_ordinal
 
 ordinal_list     := bare_ordinal_list | qualified_ordinal_list
 ```
