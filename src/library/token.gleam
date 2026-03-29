@@ -50,7 +50,8 @@ pub type Token {
 
   // Ordinal positions
   First
-  // Second covered by unit second
+  // "second" is lexed as the time-unit token `Second`; the parser
+  // reuses it as an ordinal position (2nd) via context-based disambiguation
   Third
   Fourth
   Fifth

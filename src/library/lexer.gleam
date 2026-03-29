@@ -5,7 +5,6 @@ import gleam/string
 import library/token.{type Token}
 
 pub type LexError {
-  UnexpectedCharacter(String)
   InvalidNumber(String)
   InvalidTime(String)
   InvalidDate(String)

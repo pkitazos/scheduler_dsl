@@ -33,7 +33,7 @@ pub fn parse(tokens: List(Token)) -> Result(Schedule, ParseError) {
         timing: timing,
         days: days,
         bounds: bounds,
-        exclusion: exclusions,
+        exclusions: exclusions,
       ))
 
     rest -> Error(InvalidSchedule(string.inspect(rest)))

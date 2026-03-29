@@ -17,7 +17,7 @@ fn schedule() -> ast.Schedule {
     timing: None,
     days: None,
     bounds: None,
-    exclusion: None,
+    exclusions: None,
   )
 }
 
@@ -412,7 +412,7 @@ pub fn exclusion_except_on_clause_group_test() {
   once("except on weekends")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), exclusion: Some([ast.ExceptDays(ast.Weekends)])),
+    ast.Schedule(..schedule(), exclusions: Some([ast.ExceptDays(ast.Weekends)])),
   ))
 }
 
@@ -422,7 +422,7 @@ pub fn exclusion_except_on_clause_day_test() {
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
-      exclusion: Some([ast.ExceptDays(ast.SpecificDays([ast.Mon]))]),
+      exclusions: Some([ast.ExceptDays(ast.SpecificDays([ast.Mon]))]),
     ),
   ))
 }
@@ -433,7 +433,7 @@ pub fn exclusion_except_on_clause_ordinal_test() {
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
-      exclusion: Some([ast.ExceptDays(ast.OrdinalDays([ast.DayOfMonth(1)]))]),
+      exclusions: Some([ast.ExceptDays(ast.OrdinalDays([ast.DayOfMonth(1)]))]),
     ),
   ))
 }
@@ -444,7 +444,7 @@ pub fn exclusion_except_from_to_test() {
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
-      exclusion: Some([
+      exclusions: Some([
         ast.ExceptTime(ast.TimeRange(from: ast.Time(22, 0), to: ast.Time(6, 0))),
       ]),
     ),
@@ -457,7 +457,7 @@ pub fn exclusion_except_at_time_test() {
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
-      exclusion: Some([
+      exclusions: Some([
         ast.ExceptTime(ast.At([ast.Time(12, 0)])),
       ]),
     ),
@@ -470,7 +470,7 @@ pub fn exclusion_except_at_time_list_test() {
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
-      exclusion: Some([
+      exclusions: Some([
         ast.ExceptTime(ast.At([ast.Time(12, 0), ast.Time(13, 0)])),
       ]),
     ),
@@ -483,7 +483,7 @@ pub fn exclusion_multiple_test() {
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
-      exclusion: Some([
+      exclusions: Some([
         ast.ExceptDays(ast.Weekends),
         ast.ExceptTime(ast.TimeRange(from: ast.Time(22, 0), to: ast.Time(6, 0))),
       ]),
@@ -497,7 +497,7 @@ pub fn exclusion_multiple_three_test() {
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
-      exclusion: Some([
+      exclusions: Some([
         ast.ExceptDays(ast.Weekends),
         ast.ExceptTime(ast.TimeRange(from: ast.Time(22, 0), to: ast.Time(6, 0))),
         ast.ExceptDays(ast.OrdinalDays([ast.DayOfMonth(1)])),
@@ -517,7 +517,7 @@ pub fn full_schedule_freq_and_days_test() {
       timing: None,
       days: Some(ast.Weekdays),
       bounds: None,
-      exclusion: None,
+      exclusions: None,
     )),
   )
 }
@@ -530,7 +530,7 @@ pub fn full_schedule_freq_timing_days_test() {
       timing: Some(ast.At([ast.Time(9, 0)])),
       days: Some(ast.Weekdays),
       bounds: None,
-      exclusion: None,
+      exclusions: None,
     )),
   )
 }

@@ -7,7 +7,7 @@ pub type Schedule {
     timing: Option(Timing),
     days: Option(Days),
     bounds: Option(Bounds),
-    exclusion: Option(List(Exclusion)),
+    exclusions: Option(List(Exclusion)),
   )
 }
 
