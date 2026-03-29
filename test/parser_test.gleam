@@ -13,13 +13,16 @@ fn parse(input: String) -> Result(ast.Schedule, parser.ParseError) {
 
 fn schedule() -> ast.Schedule {
   ast.Schedule(
-    frequency: None,
+    frequency: ast.Once,
     timing: None,
     days: None,
-    time_range: None,
     bounds: None,
     exclusion: None,
   )
+}
+
+fn once(expr: String) -> String {
+  "once " <> expr
 }
 
 // ── Frequency ───────────────────────────────────────────────────────
@@ -28,61 +31,61 @@ fn schedule() -> ast.Schedule {
 
 pub fn frequency_sugar_hourly_test() {
   parse("hourly")
-  |> should.equal(Ok(ast.Schedule(..schedule(), frequency: Some(ast.Hourly))))
+  |> should.equal(Ok(ast.Schedule(..schedule(), frequency: ast.Hourly)))
 }
 
 pub fn frequency_sugar_daily_test() {
   parse("daily")
-  |> should.equal(Ok(ast.Schedule(..schedule(), frequency: Some(ast.Daily))))
+  |> should.equal(Ok(ast.Schedule(..schedule(), frequency: ast.Daily)))
 }
 
 pub fn frequency_sugar_weekly_test() {
   parse("weekly")
-  |> should.equal(Ok(ast.Schedule(..schedule(), frequency: Some(ast.Weekly))))
+  |> should.equal(Ok(ast.Schedule(..schedule(), frequency: ast.Weekly)))
 }
 
 pub fn frequency_sugar_monthly_test() {
   parse("monthly")
-  |> should.equal(Ok(ast.Schedule(..schedule(), frequency: Some(ast.Monthly))))
+  |> should.equal(Ok(ast.Schedule(..schedule(), frequency: ast.Monthly)))
 }
 
 pub fn frequency_sugar_annually_test() {
   parse("annually")
-  |> should.equal(Ok(ast.Schedule(..schedule(), frequency: Some(ast.Annually))))
+  |> should.equal(Ok(ast.Schedule(..schedule(), frequency: ast.Annually)))
 }
 
 pub fn frequency_every_second_test() {
   parse("every second")
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: Some(ast.Every(1, ast.Seconds))),
+    ast.Schedule(..schedule(), frequency: ast.Every(1, ast.Seconds)),
   ))
 }
 
 pub fn frequency_every_minute_test() {
   parse("every minute")
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: Some(ast.Every(1, ast.Minutes))),
+    ast.Schedule(..schedule(), frequency: ast.Every(1, ast.Minutes)),
   ))
 }
 
 pub fn frequency_every_30_seconds_test() {
   parse("every 30 seconds")
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: Some(ast.Every(30, ast.Seconds))),
+    ast.Schedule(..schedule(), frequency: ast.Every(30, ast.Seconds)),
   ))
 }
 
 pub fn frequency_every_5_minutes_test() {
   parse("every 5 minutes")
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: Some(ast.Every(5, ast.Minutes))),
+    ast.Schedule(..schedule(), frequency: ast.Every(5, ast.Minutes)),
   ))
 }
 
 pub fn frequency_every_2_hours_test() {
   parse("every 2 hours")
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: Some(ast.Every(2, ast.Hours))),
+    ast.Schedule(..schedule(), frequency: ast.Every(2, ast.Hours)),
   ))
 }
 
@@ -90,28 +93,28 @@ pub fn frequency_every_2_hours_test() {
 pub fn frequency_every_11_day_test() {
   parse("every 11 days")
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: Some(ast.Every(11, ast.Days))),
+    ast.Schedule(..schedule(), frequency: ast.Every(11, ast.Days)),
   ))
 }
 
 pub fn frequency_every_3_weeks_test() {
   parse("every 3 weeks")
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: Some(ast.Every(3, ast.Weeks))),
+    ast.Schedule(..schedule(), frequency: ast.Every(3, ast.Weeks)),
   ))
 }
 
 pub fn frequency_every_6_months_test() {
   parse("every 6 months")
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: Some(ast.Every(6, ast.Months))),
+    ast.Schedule(..schedule(), frequency: ast.Every(6, ast.Months)),
   ))
 }
 
 pub fn frequency_every_year_test() {
   parse("every year")
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: Some(ast.Every(1, ast.Years))),
+    ast.Schedule(..schedule(), frequency: ast.Every(1, ast.Years)),
   ))
 }
 
@@ -119,14 +122,16 @@ pub fn frequency_every_year_test() {
 // time_clause := "from" time "to" time | "at" time_list
 
 pub fn time_clause_at_single_test() {
-  parse("at 09:00")
+  once("at 09:00")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(..schedule(), timing: Some(ast.At([ast.Time(9, 0)]))),
   ))
 }
 
 pub fn time_clause_at_and_test() {
-  parse("at 09:00 and 17:00")
+  once("at 09:00 and 17:00")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
@@ -136,7 +141,8 @@ pub fn time_clause_at_and_test() {
 }
 
 pub fn time_clause_at_comma_and_test() {
-  parse("at 09:00, 12:00 and 17:00")
+  once("at 09:00, 12:00 and 17:00")
+  |> parse
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
@@ -148,17 +154,19 @@ pub fn time_clause_at_comma_and_test() {
 // ── Time clause: "from" time "to" time ──────────────────────────────
 
 pub fn time_clause_from_to_test() {
-  parse("from 09:00 to 17:00")
+  once("from 09:00 to 17:00")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
-      time_range: Some(ast.TimeRange(from: ast.Time(9, 0), to: ast.Time(17, 0))),
+      timing: Some(ast.TimeRange(from: ast.Time(9, 0), to: ast.Time(17, 0))),
     ),
   ))
 }
 
 pub fn time_clause_from_test() {
-  parse("from 08:00")
+  once("from 08:00")
+  |> parse()
   |> should.equal(
     Error(parser.InvalidTimeRange("expected `to` after first time")),
   )
@@ -170,31 +178,36 @@ pub fn time_clause_from_test() {
 //            | "on" "the" qualified_ordinal_list
 
 pub fn on_clause_day_group_weekdays_test() {
-  parse("on weekdays")
+  once("on weekdays")
+  |> parse()
   |> should.equal(Ok(ast.Schedule(..schedule(), days: Some(ast.Weekdays))))
 }
 
 pub fn on_clause_day_group_weekends_test() {
-  parse("on weekends")
+  once("on weekends")
+  |> parse()
   |> should.equal(Ok(ast.Schedule(..schedule(), days: Some(ast.Weekends))))
 }
 
 pub fn on_clause_single_day_test() {
-  parse("on monday")
+  once("on monday")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(..schedule(), days: Some(ast.SpecificDays([ast.Mon]))),
   ))
 }
 
 pub fn on_clause_day_and_test() {
-  parse("on monday and friday")
+  once("on monday and friday")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(..schedule(), days: Some(ast.SpecificDays([ast.Mon, ast.Fri]))),
   ))
 }
 
 pub fn on_clause_day_multi_list_test() {
-  parse("on monday, wednesday and friday")
+  once("on monday, wednesday and friday")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
@@ -206,14 +219,16 @@ pub fn on_clause_day_multi_list_test() {
 // ── On clause: bare_ordinal_list ────────────────────────────────────
 
 pub fn on_clause_bare_ordinal_test() {
-  parse("on the 1st")
+  once("on the 1st")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(..schedule(), days: Some(ast.OrdinalDays([ast.DayOfMonth(1)]))),
   ))
 }
 
 pub fn on_clause_bare_ordinal_and_test() {
-  parse("on the 1st and 15th")
+  once("on the 1st and 15th")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
@@ -223,7 +238,8 @@ pub fn on_clause_bare_ordinal_and_test() {
 }
 
 pub fn on_clause_bare_ordinal_multi_list_test() {
-  parse("on the 1st, 15th and last")
+  once("on the 1st, 15th and last")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
@@ -235,14 +251,16 @@ pub fn on_clause_bare_ordinal_multi_list_test() {
 }
 
 pub fn on_clause_bare_ordinal_last_test() {
-  parse("on the last")
+  once("on the last")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(..schedule(), days: Some(ast.OrdinalDays([ast.Last]))),
   ))
 }
 
 pub fn on_clause_bare_ordinal_last_in_list_test() {
-  parse("on the last and 1st")
+  once("on the last and 1st")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
@@ -252,7 +270,8 @@ pub fn on_clause_bare_ordinal_last_in_list_test() {
 }
 
 pub fn on_clause_bare_ordinal_list_with_last_test() {
-  parse("on the 1st and last")
+  once("on the 1st and last")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
@@ -264,7 +283,8 @@ pub fn on_clause_bare_ordinal_list_with_last_test() {
 // ── On clause: qualified_ordinal_list ───────────────────────────────
 
 pub fn on_clause_qualified_ordinal_first_test() {
-  parse("on the first monday")
+  once("on the first monday")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
@@ -274,7 +294,8 @@ pub fn on_clause_qualified_ordinal_first_test() {
 }
 
 pub fn on_clause_qualified_ordinal_last_test() {
-  parse("on the last friday")
+  once("on the last friday")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
@@ -284,7 +305,8 @@ pub fn on_clause_qualified_ordinal_last_test() {
 }
 
 pub fn on_clause_qualified_ordinal_second_test() {
-  parse("on the second tuesday")
+  once("on the second tuesday")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
@@ -294,7 +316,8 @@ pub fn on_clause_qualified_ordinal_second_test() {
 }
 
 pub fn on_clause_qualified_ordinal_fifth_test() {
-  parse("on the fifth monday")
+  once("on the fifth monday")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
@@ -304,7 +327,8 @@ pub fn on_clause_qualified_ordinal_fifth_test() {
 }
 
 pub fn on_clause_qualified_ordinal_and_test() {
-  parse("on the first monday and last friday")
+  once("on the first monday and last friday")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
@@ -322,7 +346,8 @@ pub fn on_clause_qualified_ordinal_and_test() {
 // bounds := "starting" date | "starting" date "until" date
 
 pub fn bounds_starting_test() {
-  parse("starting 2024-01-01")
+  once("starting 2024-01-01")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
@@ -334,7 +359,8 @@ pub fn bounds_starting_test() {
 }
 
 pub fn bounds_starting_until_test() {
-  parse("starting 2024-01-01 until 2024-12-31")
+  once("starting 2024-01-01 until 2024-12-31")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
@@ -347,17 +373,20 @@ pub fn bounds_starting_until_test() {
 }
 
 pub fn bounds_starting_no_date_test() {
-  parse("starting")
+  once("starting")
+  |> parse()
   |> should.equal(Error(parser.InvalidBounds("expected date after `starting`")))
 }
 
 pub fn bounds_starting_until_no_end_date_test() {
-  parse("starting 2024-01-01 until")
+  once("starting 2024-01-01 until")
+  |> parse()
   |> should.equal(Error(parser.InvalidBounds("expected date after `until`")))
 }
 
 pub fn bounds_starting_until_with_time_schedule_test() {
-  parse("starting 2024-01-01 at 09:00 until 2024-12-31 at 17:00")
+  once("starting 2024-01-01 at 09:00 until 2024-12-31 at 17:00")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
@@ -380,14 +409,16 @@ pub fn bounds_starting_until_with_time_schedule_test() {
 // exclusions := exclusion+
 
 pub fn exclusion_except_on_clause_group_test() {
-  parse("except on weekends")
+  once("except on weekends")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(..schedule(), exclusion: Some(ast.ExceptDays(ast.Weekends))),
   ))
 }
 
 pub fn exclusion_except_on_clause_day_test() {
-  parse("except on monday")
+  once("except on monday")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
@@ -397,7 +428,8 @@ pub fn exclusion_except_on_clause_day_test() {
 }
 
 pub fn exclusion_except_on_clause_ordinal_test() {
-  parse("except on the 1st")
+  once("except on the 1st")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
@@ -407,15 +439,13 @@ pub fn exclusion_except_on_clause_ordinal_test() {
 }
 
 pub fn exclusion_except_from_to_test() {
-  parse("except from 22:00 to 06:00")
+  once("except from 22:00 to 06:00")
+  |> parse()
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
       exclusion: Some(
-        ast.ExceptTimeRange(ast.TimeRange(
-          from: ast.Time(22, 0),
-          to: ast.Time(6, 0),
-        )),
+        ast.ExceptTime(ast.TimeRange(from: ast.Time(22, 0), to: ast.Time(6, 0))),
       ),
     ),
   ))
@@ -432,10 +462,9 @@ pub fn full_schedule_freq_and_days_test() {
   parse("every 5 minutes on weekdays")
   |> should.equal(
     Ok(ast.Schedule(
-      frequency: Some(ast.Every(5, ast.Minutes)),
+      frequency: ast.Every(5, ast.Minutes),
       timing: None,
       days: Some(ast.Weekdays),
-      time_range: None,
       bounds: None,
       exclusion: None,
     )),
@@ -446,10 +475,9 @@ pub fn full_schedule_freq_timing_days_test() {
   parse("daily at 09:00 on weekdays")
   |> should.equal(
     Ok(ast.Schedule(
-      frequency: Some(ast.Daily),
+      frequency: ast.Daily,
       timing: Some(ast.At([ast.Time(9, 0)])),
       days: Some(ast.Weekdays),
-      time_range: None,
       bounds: None,
       exclusion: None,
     )),

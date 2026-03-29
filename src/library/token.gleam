@@ -13,6 +13,7 @@ pub type Token {
   To
 
   // Frequency shortcuts
+  Once
   Hourly
   Daily
   Weekly

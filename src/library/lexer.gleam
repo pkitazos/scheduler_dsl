@@ -5,9 +5,9 @@ import gleam/string
 import library/token.{
   type Token, And, Annually, At, Between, Comma, Daily, DateLiteral, Day, Days,
   Every, Except, Fifth, First, Fourth, Fri, From, Hour, Hourly, Hours, Integer,
-  Last, Minute, Minutes, Mon, Month, Monthly, Months, On, Ordinal, Sat, Second,
-  Seconds, Starting, Sun, The, Third, Thu, TimeLiteral, To, Tue, Until, Wed,
-  Week, Weekdays, Weekends, Weekly, Weeks, Year, Years,
+  Last, Minute, Minutes, Mon, Month, Monthly, Months, On, Once, Ordinal, Sat,
+  Second, Seconds, Starting, Sun, The, Third, Thu, TimeLiteral, To, Tue, Until,
+  Wed, Week, Weekdays, Weekends, Weekly, Weeks, Year, Years,
 }
 
 pub type LexError {
@@ -100,6 +100,7 @@ fn lex_word_or_number(input: String) -> Result(#(Token, String), LexError) {
     "to" -> Ok(#(To, rest))
 
     // Frequency shortcuts
+    "once" -> Ok(#(Once, rest))
     "hourly" -> Ok(#(Hourly, rest))
     "daily" -> Ok(#(Daily, rest))
     "weekly" -> Ok(#(Weekly, rest))

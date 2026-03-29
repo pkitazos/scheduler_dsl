@@ -3,10 +3,9 @@ import gleam/option.{type Option}
 /// complete schedule expression
 pub type Schedule {
   Schedule(
-    frequency: Option(Frequency),
+    frequency: Frequency,
     timing: Option(Timing),
     days: Option(Days),
-    time_range: Option(TimeRange),
     bounds: Option(Bounds),
     exclusion: Option(Exclusion),
   )
@@ -14,6 +13,7 @@ pub type Schedule {
 
 /// "every 5 minutes" or "hourly"
 pub type Frequency {
+  Once
   Every(amount: Int, unit: TimeUnit)
   Hourly
   Daily
@@ -30,11 +30,6 @@ pub type TimeUnit {
   Weeks
   Months
   Years
-}
-
-/// "at 9:00" or "at 9:00, 12:00, and 17:00"
-pub type Timing {
-  At(times: List(Time))
 }
 
 /// 24-hour time
@@ -75,8 +70,10 @@ pub type Position {
   LastPos
 }
 
-/// "between 9:00 and 17:00"
-pub type TimeRange {
+pub type Timing {
+  /// "at 9:00" or "at 9:00, 12:00, and 17:00"
+  At(times: List(Time))
+  /// "between 9:00 and 17:00"
   TimeRange(from: Time, to: Time)
 }
 
@@ -100,5 +97,5 @@ pub type Bounds {
 /// "except weekends", "except between 22:00 and 6:00"
 pub type Exclusion {
   ExceptDays(Days)
-  ExceptTimeRange(TimeRange)
+  ExceptTime(Timing)
 }

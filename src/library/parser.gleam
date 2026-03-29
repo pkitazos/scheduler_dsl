@@ -4,7 +4,7 @@ import gleam/result
 import gleam/string
 import library/ast.{
   type DayOfWeek, type Days, type Exclusion, type Frequency, type Ordinal,
-  type Position, type Schedule, type Time, type TimeRange, type Timing,
+  type Position, type Schedule, type Time, type Timing,
 }
 import library/token.{type Token}
 
@@ -22,7 +22,6 @@ pub fn parse(tokens: List(Token)) -> Result(Schedule, ParseError) {
   use #(freq, rest) <- result.try(parse_frequency(tokens))
   use #(timing, rest) <- result.try(parse_timing(rest))
   use #(days, rest) <- result.try(parse_days(rest))
-  use #(time_range, rest) <- result.try(parse_time_range(rest))
   use #(bounds, rest) <- result.try(parse_bounds(rest))
   use #(exclusion, rest) <- result.try(parse_exclusion(rest))
 
@@ -32,7 +31,6 @@ pub fn parse(tokens: List(Token)) -> Result(Schedule, ParseError) {
         frequency: freq,
         timing: timing,
         days: days,
-        time_range: time_range,
         bounds: bounds,
         exclusion: exclusion,
       ))
@@ -43,43 +41,39 @@ pub fn parse(tokens: List(Token)) -> Result(Schedule, ParseError) {
 
 fn parse_frequency(
   tokens: List(Token),
-) -> Result(#(Option(Frequency), List(Token)), ParseError) {
+) -> Result(#(Frequency, List(Token)), ParseError) {
   case tokens {
-    [token.Hourly, ..rest] -> Ok(#(Some(ast.Hourly), rest))
-    [token.Daily, ..rest] -> Ok(#(Some(ast.Daily), rest))
-    [token.Weekly, ..rest] -> Ok(#(Some(ast.Weekly), rest))
-    [token.Monthly, ..rest] -> Ok(#(Some(ast.Monthly), rest))
-    [token.Annually, ..rest] -> Ok(#(Some(ast.Annually), rest))
+    [token.Once, ..rest] -> Ok(#(ast.Once, rest))
+    [token.Hourly, ..rest] -> Ok(#(ast.Hourly, rest))
+    [token.Daily, ..rest] -> Ok(#(ast.Daily, rest))
+    [token.Weekly, ..rest] -> Ok(#(ast.Weekly, rest))
+    [token.Monthly, ..rest] -> Ok(#(ast.Monthly, rest))
+    [token.Annually, ..rest] -> Ok(#(ast.Annually, rest))
 
     [token.Every, token.Second, ..rest] ->
-      Ok(#(Some(ast.Every(1, ast.Seconds)), rest))
+      Ok(#(ast.Every(1, ast.Seconds), rest))
     [token.Every, token.Minute, ..rest] ->
-      Ok(#(Some(ast.Every(1, ast.Minutes)), rest))
-    [token.Every, token.Hour, ..rest] ->
-      Ok(#(Some(ast.Every(1, ast.Hours)), rest))
-    [token.Every, token.Day, ..rest] ->
-      Ok(#(Some(ast.Every(1, ast.Days)), rest))
-    [token.Every, token.Week, ..rest] ->
-      Ok(#(Some(ast.Every(1, ast.Weeks)), rest))
-    [token.Every, token.Month, ..rest] ->
-      Ok(#(Some(ast.Every(1, ast.Months)), rest))
-    [token.Every, token.Year, ..rest] ->
-      Ok(#(Some(ast.Every(1, ast.Years)), rest))
+      Ok(#(ast.Every(1, ast.Minutes), rest))
+    [token.Every, token.Hour, ..rest] -> Ok(#(ast.Every(1, ast.Hours), rest))
+    [token.Every, token.Day, ..rest] -> Ok(#(ast.Every(1, ast.Days), rest))
+    [token.Every, token.Week, ..rest] -> Ok(#(ast.Every(1, ast.Weeks), rest))
+    [token.Every, token.Month, ..rest] -> Ok(#(ast.Every(1, ast.Months), rest))
+    [token.Every, token.Year, ..rest] -> Ok(#(ast.Every(1, ast.Years), rest))
 
     [token.Every, token.Integer(n), token.Seconds, ..rest] ->
-      Ok(#(Some(ast.Every(n, ast.Seconds)), rest))
+      Ok(#(ast.Every(n, ast.Seconds), rest))
     [token.Every, token.Integer(n), token.Minutes, ..rest] ->
-      Ok(#(Some(ast.Every(n, ast.Minutes)), rest))
+      Ok(#(ast.Every(n, ast.Minutes), rest))
     [token.Every, token.Integer(n), token.Hours, ..rest] ->
-      Ok(#(Some(ast.Every(n, ast.Hours)), rest))
+      Ok(#(ast.Every(n, ast.Hours), rest))
     [token.Every, token.Integer(n), token.Days, ..rest] ->
-      Ok(#(Some(ast.Every(n, ast.Days)), rest))
+      Ok(#(ast.Every(n, ast.Days), rest))
     [token.Every, token.Integer(n), token.Weeks, ..rest] ->
-      Ok(#(Some(ast.Every(n, ast.Weeks)), rest))
+      Ok(#(ast.Every(n, ast.Weeks), rest))
     [token.Every, token.Integer(n), token.Months, ..rest] ->
-      Ok(#(Some(ast.Every(n, ast.Months)), rest))
+      Ok(#(ast.Every(n, ast.Months), rest))
     [token.Every, token.Integer(n), token.Years, ..rest] ->
-      Ok(#(Some(ast.Every(n, ast.Years)), rest))
+      Ok(#(ast.Every(n, ast.Years), rest))
 
     [token.Every, token.Integer(n), other, ..] ->
       Error(InvalidFrequency(
@@ -98,7 +92,10 @@ fn parse_frequency(
         "`every " <> string.inspect(other) <> "` doesn't make sense",
       ))
 
-    _ -> Ok(#(None, tokens))
+    other ->
+      Error(InvalidFrequency(
+        "`" <> string.inspect(other) <> "` doesn't include a valid frequency",
+      ))
   }
 }
 
@@ -111,6 +108,34 @@ fn parse_timing(
       use #(rest_times, rest2) <- result.try(parse_time_list(rest))
       Ok(#(Some(ast.At(times: [first_time, ..rest_times])), rest2))
     }
+
+    [token.At, ..] -> {
+      Error(InvalidFrequency("expected time literal HH:mm after `at`"))
+    }
+
+    [
+      token.From,
+      token.TimeLiteral(h1, m1),
+      token.To,
+      token.TimeLiteral(h2, m2),
+      ..rest
+    ] ->
+      Ok(#(
+        Some(ast.TimeRange(
+          from: ast.Time(hour: h1, minute: m1),
+          to: ast.Time(hour: h2, minute: m2),
+        )),
+        rest,
+      ))
+
+    [token.From, token.TimeLiteral(_, _), token.To, ..] ->
+      Error(InvalidTimeRange("expected time after `to`"))
+
+    [token.From, token.TimeLiteral(_, _), ..] ->
+      Error(InvalidTimeRange("expected `to` after first time"))
+
+    [token.From, ..] -> Error(InvalidTimeRange("expected time after `from`"))
+
     _ -> Ok(#(None, tokens))
   }
 }
@@ -279,37 +304,6 @@ fn token_to_ordinal_position(tok: Token) -> Result(Position, ParseError) {
   }
 }
 
-fn parse_time_range(
-  tokens: List(Token),
-) -> Result(#(Option(TimeRange), List(Token)), ParseError) {
-  case tokens {
-    [
-      token.From,
-      token.TimeLiteral(h1, m1),
-      token.To,
-      token.TimeLiteral(h2, m2),
-      ..rest
-    ] ->
-      Ok(#(
-        Some(ast.TimeRange(
-          from: ast.Time(hour: h1, minute: m1),
-          to: ast.Time(hour: h2, minute: m2),
-        )),
-        rest,
-      ))
-
-    [token.From, token.TimeLiteral(_, _), token.To, ..] ->
-      Error(InvalidTimeRange("expected time after `to`"))
-
-    [token.From, token.TimeLiteral(_, _), ..] ->
-      Error(InvalidTimeRange("expected `to` after first time"))
-
-    [token.From, ..] -> Error(InvalidTimeRange("expected time after `from`"))
-
-    _ -> Ok(#(None, tokens))
-  }
-}
-
 fn parse_bounds(
   tokens: List(Token),
 ) -> Result(#(Option(ast.Bounds), List(Token)), ParseError) {
@@ -466,10 +460,10 @@ fn parse_exclusion(
   case tokens {
     [token.Except, token.From, ..rest] -> {
       use #(maybe_time_range, rest2) <- result.try(
-        parse_time_range([token.From, ..rest]),
+        parse_timing([token.From, ..rest]),
       )
       case maybe_time_range {
-        Some(time_range) -> Ok(#(Some(ast.ExceptTimeRange(time_range)), rest2))
+        Some(time_range) -> Ok(#(Some(ast.ExceptTime(time_range)), rest2))
         None ->
           Error(InvalidExclusion("expected time range after 'except from'"))
       }

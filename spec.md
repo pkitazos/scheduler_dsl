@@ -23,7 +23,7 @@ day_group        := "weekdays" | "weekends"
 ### Frequency
 ```
 frequency_sugar  := "hourly" | "daily" | "weekly" | "monthly" | "annually"
-frequency        := "every" number unit | frequency_sugar
+frequency        := "once" | "every" number unit | frequency_sugar
 ```
 
 ### Lists
