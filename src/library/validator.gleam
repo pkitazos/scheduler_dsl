@@ -1,3 +1,5 @@
+import gleam/dict
+import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
 import library/ast
@@ -5,23 +7,85 @@ import library/ast
 // - [ ] frequency
 // - [ ] timing
 // - [ ] days
-// - [ ] time_range
 // - [/] bounds
 // - [ ] exclusion
 
 pub type ValidatorError {
+  InvalidFrequency(String, ast.Frequency)
   InvalidDate(String, ast.Date)
   InvalidTime(String, ast.Time)
+  InvalidTimeRange(String, ast.Timing)
+  InvalidTimeList(String, List(ast.Time))
 }
 
 pub fn validate(schedule: ast.Schedule) -> Result(ast.Schedule, ValidatorError) {
-  case schedule.bounds {
-    Some(bounds) -> {
-      use bounds <- result.try(validate_bounds(bounds))
-      Ok(ast.Schedule(..schedule, bounds: Some(bounds)))
+  use _frequency <- result.try(validate_frequency(schedule.frequency))
+
+  case schedule.timing {
+    Some(timing) -> {
+      use timing <- result.try(validate_timing(timing))
+
+      case schedule.bounds {
+        Some(bounds) -> {
+          use bounds <- result.try(validate_bounds(bounds))
+
+          Ok(
+            ast.Schedule(..schedule, timing: Some(timing), bounds: Some(bounds)),
+          )
+        }
+
+        None -> Ok(ast.Schedule(..schedule, timing: Some(timing)))
+      }
     }
+
     None -> Ok(schedule)
   }
+}
+
+fn validate_frequency(
+  freq: ast.Frequency,
+) -> Result(ast.Frequency, ValidatorError) {
+  case freq {
+    ast.Every(amount: 0, unit: _) ->
+      Error(InvalidFrequency("frequency can't be 0", freq))
+
+    _ -> Ok(freq)
+  }
+}
+
+fn validate_timing(timing: ast.Timing) -> Result(ast.Timing, ValidatorError) {
+  case timing {
+    ast.TimeRange(from, to) if from == to -> {
+      use _from <- result.try(validate_time_result(from))
+      use _to <- result.try(validate_time_result(to))
+
+      case from == to {
+        True -> Error(InvalidTimeRange("invalid range", timing))
+        False -> Ok(timing)
+      }
+    }
+
+    ast.TimeRange(_, _) -> Ok(timing)
+
+    ast.At(times) -> {
+      use _times <- result.try(list.try_map(times, validate_time_result))
+
+      case find_duplicates(times) {
+        [] -> Ok(timing)
+        dups ->
+          Error(InvalidTimeList("invalid time list, contains duplicates", dups))
+      }
+    }
+  }
+}
+
+fn find_duplicates(xs: List(a)) -> List(a) {
+  xs
+  |> list.fold(dict.new(), fn(acc, x) {
+    dict.upsert(acc, x, fn(count) { option.unwrap(count, 0) + 1 })
+  })
+  |> dict.filter(fn(_, value) { value > 1 })
+  |> dict.keys
 }
 
 fn validate_bounds(bounds: ast.Bounds) -> Result(ast.Bounds, ValidatorError) {
