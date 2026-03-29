@@ -1,11 +1,6 @@
 import gleeunit/should
 import library/lexer
-import library/token.{
-  And, Annually, At, Comma, Daily, Day, Days, Every, Fri, From, Hour, Hourly,
-  Hours, Integer, Last, Minute, Minutes, Mon, Month, Monthly, Months, On,
-  Ordinal, Sat, Second, Seconds, Starting, Sun, The, Thu, TimeLiteral, To, Tue,
-  Wed, Week, Weekdays, Weekends, Weekly, Weeks, Year, Years,
-}
+import library/token
 
 // ── Base Types ──────────────────────────────────────────────────────
 // number := [0-9]+
@@ -14,17 +9,17 @@ import library/token.{
 
 pub fn number_test() {
   lexer.lex("42")
-  |> should.equal(Ok([Integer(42)]))
+  |> should.equal(Ok([token.Integer(42)]))
 }
 
 pub fn time_test() {
   lexer.lex("09:00")
-  |> should.equal(Ok([TimeLiteral(9, 0)]))
+  |> should.equal(Ok([token.TimeLiteral(9, 0)]))
 }
 
 pub fn time_afternoon_test() {
   lexer.lex("23:59")
-  |> should.equal(Ok([TimeLiteral(23, 59)]))
+  |> should.equal(Ok([token.TimeLiteral(23, 59)]))
 }
 
 pub fn date_test() {
@@ -43,72 +38,72 @@ pub fn date_test() {
 
 pub fn unit_second_test() {
   lexer.lex("second")
-  |> should.equal(Ok([Second]))
+  |> should.equal(Ok([token.Second]))
 }
 
 pub fn unit_seconds_test() {
   lexer.lex("seconds")
-  |> should.equal(Ok([Seconds]))
+  |> should.equal(Ok([token.Seconds]))
 }
 
 pub fn unit_minute_test() {
   lexer.lex("minute")
-  |> should.equal(Ok([Minute]))
+  |> should.equal(Ok([token.Minute]))
 }
 
 pub fn unit_minutes_test() {
   lexer.lex("minutes")
-  |> should.equal(Ok([Minutes]))
+  |> should.equal(Ok([token.Minutes]))
 }
 
 pub fn unit_hour_test() {
   lexer.lex("hour")
-  |> should.equal(Ok([Hour]))
+  |> should.equal(Ok([token.Hour]))
 }
 
 pub fn unit_hours_test() {
   lexer.lex("hours")
-  |> should.equal(Ok([Hours]))
+  |> should.equal(Ok([token.Hours]))
 }
 
 pub fn unit_day_test() {
   lexer.lex("day")
-  |> should.equal(Ok([Day]))
+  |> should.equal(Ok([token.Day]))
 }
 
 pub fn unit_days_test() {
   lexer.lex("days")
-  |> should.equal(Ok([Days]))
+  |> should.equal(Ok([token.Days]))
 }
 
 pub fn unit_week_test() {
   lexer.lex("week")
-  |> should.equal(Ok([Week]))
+  |> should.equal(Ok([token.Week]))
 }
 
 pub fn unit_weeks_test() {
   lexer.lex("weeks")
-  |> should.equal(Ok([Weeks]))
+  |> should.equal(Ok([token.Weeks]))
 }
 
 pub fn unit_month_test() {
   lexer.lex("month")
-  |> should.equal(Ok([Month]))
+  |> should.equal(Ok([token.Month]))
 }
 
 pub fn unit_months_test() {
   lexer.lex("months")
-  |> should.equal(Ok([Months]))
+  |> should.equal(Ok([token.Months]))
 }
 
 pub fn unit_year_test() {
   lexer.lex("year")
-  |> should.equal(Ok([Year]))
+  |> should.equal(Ok([token.Year]))
 }
 
 pub fn unit_years_test() {
   lexer.lex("years")
-  |> should.equal(Ok([Years]))
+  |> should.equal(Ok([token.Years]))
 }
 
 // ── Days ────────────────────────────────────────────────────────────
@@ -117,37 +112,37 @@ pub fn unit_years_test() {
 
 pub fn day_monday_test() {
   lexer.lex("monday")
-  |> should.equal(Ok([Mon]))
+  |> should.equal(Ok([token.Mon]))
 }
 
 pub fn day_tuesday_test() {
   lexer.lex("tuesday")
-  |> should.equal(Ok([Tue]))
+  |> should.equal(Ok([token.Tue]))
 }
 
 pub fn day_wednesday_test() {
   lexer.lex("wednesday")
-  |> should.equal(Ok([Wed]))
+  |> should.equal(Ok([token.Wed]))
 }
 
 pub fn day_thursday_test() {
   lexer.lex("thursday")
-  |> should.equal(Ok([Thu]))
+  |> should.equal(Ok([token.Thu]))
 }
 
 pub fn day_friday_test() {
   lexer.lex("friday")
-  |> should.equal(Ok([Fri]))
+  |> should.equal(Ok([token.Fri]))
 }
 
 pub fn day_saturday_test() {
   lexer.lex("saturday")
-  |> should.equal(Ok([Sat]))
+  |> should.equal(Ok([token.Sat]))
 }
 
 pub fn day_sunday_test() {
   lexer.lex("sunday")
-  |> should.equal(Ok([Sun]))
+  |> should.equal(Ok([token.Sun]))
 }
 
 // ── Day Groups ──────────────────────────────────────────────────────
@@ -155,12 +150,12 @@ pub fn day_sunday_test() {
 
 pub fn day_group_weekdays_test() {
   lexer.lex("weekdays")
-  |> should.equal(Ok([Weekdays]))
+  |> should.equal(Ok([token.Weekdays]))
 }
 
 pub fn day_group_weekends_test() {
   lexer.lex("weekends")
-  |> should.equal(Ok([Weekends]))
+  |> should.equal(Ok([token.Weekends]))
 }
 
 // ── Frequency ───────────────────────────────────────────────────────
@@ -169,54 +164,54 @@ pub fn day_group_weekends_test() {
 
 pub fn frequency_sugar_hourly_test() {
   lexer.lex("hourly")
-  |> should.equal(Ok([Hourly]))
+  |> should.equal(Ok([token.Hourly]))
 }
 
 pub fn frequency_sugar_daily_test() {
   lexer.lex("daily")
-  |> should.equal(Ok([Daily]))
+  |> should.equal(Ok([token.Daily]))
 }
 
 pub fn frequency_sugar_weekly_test() {
   lexer.lex("weekly")
-  |> should.equal(Ok([Weekly]))
+  |> should.equal(Ok([token.Weekly]))
 }
 
 pub fn frequency_sugar_monthly_test() {
   lexer.lex("monthly")
-  |> should.equal(Ok([Monthly]))
+  |> should.equal(Ok([token.Monthly]))
 }
 
 pub fn frequency_sugar_annually_test() {
   lexer.lex("annually")
-  |> should.equal(Ok([Annually]))
+  |> should.equal(Ok([token.Annually]))
 }
 
 // ------
 
 pub fn frequency_every_n_unit_test() {
   lexer.lex("every 5 minutes")
-  |> should.equal(Ok([Every, Integer(5), Minutes]))
+  |> should.equal(Ok([token.Every, token.Integer(5), token.Minutes]))
 }
 
 pub fn frequency_every_2_hours_test() {
   lexer.lex("every 2 hours")
-  |> should.equal(Ok([Every, Integer(2), Hours]))
+  |> should.equal(Ok([token.Every, token.Integer(2), token.Hours]))
 }
 
 pub fn frequency_every_3_weeks_test() {
   lexer.lex("every 3 weeks")
-  |> should.equal(Ok([Every, Integer(3), Weeks]))
+  |> should.equal(Ok([token.Every, token.Integer(3), token.Weeks]))
 }
 
 pub fn frequency_every_6_months_test() {
   lexer.lex("every 6 months")
-  |> should.equal(Ok([Every, Integer(6), Months]))
+  |> should.equal(Ok([token.Every, token.Integer(6), token.Months]))
 }
 
 pub fn frequency_every_1_year_test() {
   lexer.lex("every 1 year")
-  |> should.equal(Ok([Every, Integer(1), Year]))
+  |> should.equal(Ok([token.Every, token.Integer(1), token.Year]))
 }
 
 // ── Ordinals ────────────────────────────────────────────────────────
@@ -226,27 +221,27 @@ pub fn frequency_every_1_year_test() {
 
 pub fn ordinal_suffix_1st_test() {
   lexer.lex("1st")
-  |> should.equal(Ok([Ordinal(1)]))
+  |> should.equal(Ok([token.Ordinal(1)]))
 }
 
 pub fn ordinal_suffix_22nd_test() {
   lexer.lex("22nd")
-  |> should.equal(Ok([Ordinal(22)]))
+  |> should.equal(Ok([token.Ordinal(22)]))
 }
 
 pub fn ordinal_suffix_3rd_test() {
   lexer.lex("3rd")
-  |> should.equal(Ok([Ordinal(3)]))
+  |> should.equal(Ok([token.Ordinal(3)]))
 }
 
 pub fn ordinal_suffix_15th_test() {
   lexer.lex("15th")
-  |> should.equal(Ok([Ordinal(15)]))
+  |> should.equal(Ok([token.Ordinal(15)]))
 }
 
 pub fn ordinal_suffix_31st_test() {
   lexer.lex("31st")
-  |> should.equal(Ok([Ordinal(31)]))
+  |> should.equal(Ok([token.Ordinal(31)]))
 }
 
 // ------
@@ -278,7 +273,7 @@ pub fn word_ordinal_fifth_test() {
 
 pub fn word_ordinal_last_test() {
   lexer.lex("last")
-  |> should.equal(Ok([Last]))
+  |> should.equal(Ok([token.Last]))
 }
 
 // ── Lists ───────────────────────────────────────────────────────────
@@ -287,17 +282,19 @@ pub fn word_ordinal_last_test() {
 
 pub fn day_list_single_test() {
   lexer.lex("monday")
-  |> should.equal(Ok([Mon]))
+  |> should.equal(Ok([token.Mon]))
 }
 
 pub fn day_list_two_test() {
   lexer.lex("monday and friday")
-  |> should.equal(Ok([Mon, And, Fri]))
+  |> should.equal(Ok([token.Mon, token.And, token.Fri]))
 }
 
 pub fn day_list_oxford_comma_test() {
   lexer.lex("monday, wednesday, and friday")
-  |> should.equal(Ok([Mon, Comma, Wed, Comma, And, Fri]))
+  |> should.equal(
+    Ok([token.Mon, token.Comma, token.Wed, token.Comma, token.And, token.Fri]),
+  )
 }
 
 // ------
@@ -306,12 +303,12 @@ pub fn time_list_three_test() {
   lexer.lex("09:00, 12:00, and 17:00")
   |> should.equal(
     Ok([
-      TimeLiteral(9, 0),
-      Comma,
-      TimeLiteral(12, 0),
-      Comma,
-      And,
-      TimeLiteral(17, 0),
+      token.TimeLiteral(9, 0),
+      token.Comma,
+      token.TimeLiteral(12, 0),
+      token.Comma,
+      token.And,
+      token.TimeLiteral(17, 0),
     ]),
   )
 }
@@ -326,41 +323,47 @@ pub fn time_list_three_test() {
 
 pub fn on_clause_day_group_test() {
   lexer.lex("on weekdays")
-  |> should.equal(Ok([On, Weekdays]))
+  |> should.equal(Ok([token.On, token.Weekdays]))
 }
 
 pub fn on_clause_ordinal_test() {
   lexer.lex("on the 1st and 15th")
-  |> should.equal(Ok([On, The, Ordinal(1), And, Ordinal(15)]))
+  |> should.equal(
+    Ok([token.On, token.The, token.Ordinal(1), token.And, token.Ordinal(15)]),
+  )
 }
 
 pub fn on_clause_qualified_test() {
   lexer.lex("on the last friday")
-  |> should.equal(Ok([On, The, Last, Fri]))
+  |> should.equal(Ok([token.On, token.The, token.Last, token.Fri]))
 }
 
 // ------
 
 pub fn time_clause_at_test() {
   lexer.lex("at 09:00 and 17:00")
-  |> should.equal(Ok([At, TimeLiteral(9, 0), And, TimeLiteral(17, 0)]))
+  |> should.equal(
+    Ok([token.At, token.TimeLiteral(9, 0), token.And, token.TimeLiteral(17, 0)]),
+  )
 }
 
 pub fn time_clause_from_to_test() {
   lexer.lex("from 09:00 to 17:00")
-  |> should.equal(Ok([From, TimeLiteral(9, 0), To, TimeLiteral(17, 0)]))
+  |> should.equal(
+    Ok([token.From, token.TimeLiteral(9, 0), token.To, token.TimeLiteral(17, 0)]),
+  )
 }
 
 pub fn bounds_starting_test() {
   lexer.lex("starting 2024-01-01")
-  |> should.equal(Ok([Starting, token.DateLiteral(2024, 1, 1)]))
+  |> should.equal(Ok([token.Starting, token.DateLiteral(2024, 1, 1)]))
 }
 
 pub fn bounds_starting_until_test() {
   lexer.lex("starting 2024-01-01 until 2024-12-31")
   |> should.equal(
     Ok([
-      Starting,
+      token.Starting,
       token.DateLiteral(2024, 1, 1),
       token.Until,
       token.DateLiteral(2024, 12, 31),
@@ -370,20 +373,32 @@ pub fn bounds_starting_until_test() {
 
 pub fn exclusion_except_on_test() {
   lexer.lex("except on monday")
-  |> should.equal(Ok([token.Except, On, Mon]))
+  |> should.equal(Ok([token.Except, token.On, token.Mon]))
 }
 
 pub fn exclusion_except_from_to_test() {
   lexer.lex("except from 22:00 to 06:00")
   |> should.equal(
-    Ok([token.Except, From, TimeLiteral(22, 0), To, TimeLiteral(6, 0)]),
+    Ok([
+      token.Except,
+      token.From,
+      token.TimeLiteral(22, 0),
+      token.To,
+      token.TimeLiteral(6, 0),
+    ]),
   )
 }
 
 pub fn exclusion_except_time_list_test() {
   lexer.lex("except at 12:00 and 13:00")
   |> should.equal(
-    Ok([token.Except, At, TimeLiteral(12, 0), And, TimeLiteral(13, 0)]),
+    Ok([
+      token.Except,
+      token.At,
+      token.TimeLiteral(12, 0),
+      token.And,
+      token.TimeLiteral(13, 0),
+    ]),
   )
 }
 
@@ -392,17 +407,19 @@ pub fn exclusion_except_time_list_test() {
 
 pub fn full_schedule_simple_test() {
   lexer.lex("every 30 minutes on weekdays")
-  |> should.equal(Ok([Every, Integer(30), Minutes, On, Weekdays]))
+  |> should.equal(
+    Ok([token.Every, token.Integer(30), token.Minutes, token.On, token.Weekdays]),
+  )
 }
 
 pub fn full_schedule_with_bounds_test() {
   lexer.lex("daily at 09:00 starting 2024-01-01")
   |> should.equal(
     Ok([
-      Daily,
-      At,
-      TimeLiteral(9, 0),
-      Starting,
+      token.Daily,
+      token.At,
+      token.TimeLiteral(9, 0),
+      token.Starting,
       token.DateLiteral(2024, 1, 1),
     ]),
   )
@@ -412,14 +429,14 @@ pub fn full_schedule_with_exclusion_test() {
   lexer.lex("every 30 minutes except on saturday and sunday")
   |> should.equal(
     Ok([
-      Every,
-      Integer(30),
-      Minutes,
+      token.Every,
+      token.Integer(30),
+      token.Minutes,
       token.Except,
-      On,
-      Sat,
-      And,
-      Sun,
+      token.On,
+      token.Sat,
+      token.And,
+      token.Sun,
     ]),
   )
 }
@@ -428,10 +445,12 @@ pub fn full_schedule_with_exclusion_test() {
 
 pub fn case_insensitive_test() {
   lexer.lex("Every 5 Minutes On WEEKDAYS")
-  |> should.equal(Ok([Every, Integer(5), Minutes, On, Weekdays]))
+  |> should.equal(
+    Ok([token.Every, token.Integer(5), token.Minutes, token.On, token.Weekdays]),
+  )
 }
 
 pub fn leading_trailing_whitespace_test() {
   lexer.lex("  daily  ")
-  |> should.equal(Ok([Daily]))
+  |> should.equal(Ok([token.Daily]))
 }

@@ -2,13 +2,7 @@ import gleam/int
 import gleam/list
 import gleam/result
 import gleam/string
-import library/token.{
-  type Token, And, Annually, At, Between, Comma, Daily, DateLiteral, Day, Days,
-  Every, Except, Fifth, First, Fourth, Fri, From, Hour, Hourly, Hours, Integer,
-  Last, Minute, Minutes, Mon, Month, Monthly, Months, On, Once, Ordinal, Sat,
-  Second, Seconds, Starting, Sun, The, Third, Thu, TimeLiteral, To, Tue, Until,
-  Wed, Week, Weekdays, Weekends, Weekly, Weeks, Year, Years,
-}
+import library/token.{type Token}
 
 pub type LexError {
   UnexpectedCharacter(String)
@@ -36,7 +30,7 @@ fn lex_tokens(input: String, acc: List(Token)) -> Result(List(Token), LexError) 
 
 fn lex_one(input: String) -> Result(#(Token, String), LexError) {
   case input {
-    "," <> rest -> Ok(#(Comma, rest))
+    "," <> rest -> Ok(#(token.Comma, rest))
 
     _ -> {
       lex_time(input)
@@ -56,7 +50,7 @@ fn lex_time(input: String) -> Result(#(Token, String), LexError) {
       use minute <- result.try(
         int.parse(m1 <> m2) |> result.replace_error(InvalidTime(input)),
       )
-      Ok(#(TimeLiteral(hour, minute), string.concat(rest)))
+      Ok(#(token.TimeLiteral(hour, minute), string.concat(rest)))
     }
     _ -> Error(InvalidTime(input))
   }
@@ -76,7 +70,7 @@ fn lex_date(input: String) -> Result(#(Token, String), LexError) {
       use day <- result.try(
         int.parse(d1 <> d2) |> result.replace_error(InvalidDate(input)),
       )
-      Ok(#(DateLiteral(year, month, day), string.concat(rest)))
+      Ok(#(token.DateLiteral(year, month, day), string.concat(rest)))
     }
     _ -> Error(InvalidDate(input))
   }
@@ -87,62 +81,61 @@ fn lex_word_or_number(input: String) -> Result(#(Token, String), LexError) {
 
   case word {
     // Keywords
-    "every" -> Ok(#(Every, rest))
-    "at" -> Ok(#(At, rest))
-    "on" -> Ok(#(On, rest))
-    "the" -> Ok(#(The, rest))
-    "and" -> Ok(#(And, rest))
-    "between" -> Ok(#(Between, rest))
-    "except" -> Ok(#(Except, rest))
-    "starting" -> Ok(#(Starting, rest))
-    "until" -> Ok(#(Until, rest))
-    "from" -> Ok(#(From, rest))
-    "to" -> Ok(#(To, rest))
+    "every" -> Ok(#(token.Every, rest))
+    "at" -> Ok(#(token.At, rest))
+    "on" -> Ok(#(token.On, rest))
+    "the" -> Ok(#(token.The, rest))
+    "and" -> Ok(#(token.And, rest))
+    "except" -> Ok(#(token.Except, rest))
+    "starting" -> Ok(#(token.Starting, rest))
+    "until" -> Ok(#(token.Until, rest))
+    "from" -> Ok(#(token.From, rest))
+    "to" -> Ok(#(token.To, rest))
 
     // Frequency shortcuts
-    "once" -> Ok(#(Once, rest))
-    "hourly" -> Ok(#(Hourly, rest))
-    "daily" -> Ok(#(Daily, rest))
-    "weekly" -> Ok(#(Weekly, rest))
-    "monthly" -> Ok(#(Monthly, rest))
-    "annually" -> Ok(#(Annually, rest))
+    "once" -> Ok(#(token.Once, rest))
+    "hourly" -> Ok(#(token.Hourly, rest))
+    "daily" -> Ok(#(token.Daily, rest))
+    "weekly" -> Ok(#(token.Weekly, rest))
+    "monthly" -> Ok(#(token.Monthly, rest))
+    "annually" -> Ok(#(token.Annually, rest))
 
     // Time units
-    "second" -> Ok(#(Second, rest))
-    "seconds" -> Ok(#(Seconds, rest))
-    "minute" -> Ok(#(Minute, rest))
-    "minutes" -> Ok(#(Minutes, rest))
-    "hour" -> Ok(#(Hour, rest))
-    "hours" -> Ok(#(Hours, rest))
-    "day" -> Ok(#(Day, rest))
-    "days" -> Ok(#(Days, rest))
-    "week" -> Ok(#(Week, rest))
-    "weeks" -> Ok(#(Weeks, rest))
-    "month" -> Ok(#(Month, rest))
-    "months" -> Ok(#(Months, rest))
-    "year" -> Ok(#(Year, rest))
-    "years" -> Ok(#(Years, rest))
+    "second" -> Ok(#(token.Second, rest))
+    "seconds" -> Ok(#(token.Seconds, rest))
+    "minute" -> Ok(#(token.Minute, rest))
+    "minutes" -> Ok(#(token.Minutes, rest))
+    "hour" -> Ok(#(token.Hour, rest))
+    "hours" -> Ok(#(token.Hours, rest))
+    "day" -> Ok(#(token.Day, rest))
+    "days" -> Ok(#(token.Days, rest))
+    "week" -> Ok(#(token.Week, rest))
+    "weeks" -> Ok(#(token.Weeks, rest))
+    "month" -> Ok(#(token.Month, rest))
+    "months" -> Ok(#(token.Months, rest))
+    "year" -> Ok(#(token.Year, rest))
+    "years" -> Ok(#(token.Years, rest))
 
     // Day groups
-    "weekdays" -> Ok(#(Weekdays, rest))
-    "weekends" -> Ok(#(Weekends, rest))
+    "weekdays" -> Ok(#(token.Weekdays, rest))
+    "weekends" -> Ok(#(token.Weekends, rest))
 
     // Days
-    "monday" -> Ok(#(Mon, rest))
-    "tuesday" -> Ok(#(Tue, rest))
-    "wednesday" -> Ok(#(Wed, rest))
-    "thursday" -> Ok(#(Thu, rest))
-    "friday" -> Ok(#(Fri, rest))
-    "saturday" -> Ok(#(Sat, rest))
-    "sunday" -> Ok(#(Sun, rest))
+    "monday" -> Ok(#(token.Mon, rest))
+    "tuesday" -> Ok(#(token.Tue, rest))
+    "wednesday" -> Ok(#(token.Wed, rest))
+    "thursday" -> Ok(#(token.Thu, rest))
+    "friday" -> Ok(#(token.Fri, rest))
+    "saturday" -> Ok(#(token.Sat, rest))
+    "sunday" -> Ok(#(token.Sun, rest))
 
     // Ordinal positions
-    "first" -> Ok(#(First, rest))
+    "first" -> Ok(#(token.First, rest))
     // second handled in units
-    "third" -> Ok(#(Third, rest))
-    "fourth" -> Ok(#(Fourth, rest))
-    "fifth" -> Ok(#(Fifth, rest))
-    "last" -> Ok(#(Last, rest))
+    "third" -> Ok(#(token.Third, rest))
+    "fourth" -> Ok(#(token.Fourth, rest))
+    "fifth" -> Ok(#(token.Fifth, rest))
+    "last" -> Ok(#(token.Last, rest))
 
     // Ordinals like "1st", "2nd", "3rd", "15th"
     _ -> lex_number_or_ordinal(word, rest)
@@ -166,7 +159,7 @@ fn lex_number_or_ordinal(
         |> int.parse()
         |> result.replace_error(InvalidNumber(word)),
       )
-      Ok(#(Ordinal(n), rest))
+      Ok(#(token.Ordinal(n), rest))
     }
 
     False -> {
@@ -175,7 +168,7 @@ fn lex_number_or_ordinal(
         |> int.parse()
         |> result.replace_error(InvalidNumber(word)),
       )
-      Ok(#(Integer(n), rest))
+      Ok(#(token.Integer(n), rest))
     }
   }
 }

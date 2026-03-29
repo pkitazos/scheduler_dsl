@@ -73,7 +73,7 @@ pub type Position {
 pub type Timing {
   /// "at 9:00" or "at 9:00, 12:00, and 17:00"
   At(times: List(Time))
-  /// "between 9:00 and 17:00"
+  /// "from 9:00 to 17:00"
   TimeRange(from: Time, to: Time)
 }
 
@@ -87,14 +87,13 @@ pub type Date {
   Date(year: Int, month: Int, day: Int)
 }
 
-/// "starting ...", "until ...", "from ... until ..."
+/// "starting ...", "starting ... until ..."
 pub type Bounds {
   Starting(BoundPoint)
-  Until(BoundPoint)
   Between(from: BoundPoint, to: BoundPoint)
 }
 
-/// "except weekends", "except between 22:00 and 6:00"
+/// "except weekends", "except from 22:00 to 6:00"
 pub type Exclusion {
   ExceptDays(Days)
   ExceptTime(Timing)

@@ -61,6 +61,21 @@ fn parse_frequency(
     [token.Every, token.Month, ..rest] -> Ok(#(ast.Every(1, ast.Months), rest))
     [token.Every, token.Year, ..rest] -> Ok(#(ast.Every(1, ast.Years), rest))
 
+    [token.Every, token.Integer(1), token.Second, ..rest] ->
+      Ok(#(ast.Every(1, ast.Seconds), rest))
+    [token.Every, token.Integer(1), token.Minute, ..rest] ->
+      Ok(#(ast.Every(1, ast.Minutes), rest))
+    [token.Every, token.Integer(1), token.Hour, ..rest] ->
+      Ok(#(ast.Every(1, ast.Hours), rest))
+    [token.Every, token.Integer(1), token.Day, ..rest] ->
+      Ok(#(ast.Every(1, ast.Days), rest))
+    [token.Every, token.Integer(1), token.Week, ..rest] ->
+      Ok(#(ast.Every(1, ast.Weeks), rest))
+    [token.Every, token.Integer(1), token.Month, ..rest] ->
+      Ok(#(ast.Every(1, ast.Months), rest))
+    [token.Every, token.Integer(1), token.Year, ..rest] ->
+      Ok(#(ast.Every(1, ast.Years), rest))
+
     [token.Every, token.Integer(n), token.Seconds, ..rest] ->
       Ok(#(ast.Every(n, ast.Seconds), rest))
     [token.Every, token.Integer(n), token.Minutes, ..rest] ->
@@ -111,7 +126,7 @@ fn parse_timing(
     }
 
     [token.At, ..] -> {
-      Error(InvalidFrequency("expected time literal HH:mm after `at`"))
+      Error(InvalidTiming("expected time literal HH:mm after `at`"))
     }
 
     [
@@ -512,12 +527,6 @@ fn parse_single_exclusion(
 
       Ok(#(Some(ast.ExceptTime(timing)), rest2))
     }
-
-    [token.Except, token.Weekdays, ..rest] ->
-      Ok(#(Some(ast.ExceptDays(ast.Weekdays)), rest))
-
-    [token.Except, token.Weekends, ..rest] ->
-      Ok(#(Some(ast.ExceptDays(ast.Weekends)), rest))
 
     [token.Except, token.On, ..rest] -> {
       use #(maybe_days, rest2) <- result.try(parse_days([token.On, ..rest]))
