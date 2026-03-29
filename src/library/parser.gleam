@@ -1,4 +1,5 @@
 import gleam/int
+import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
@@ -23,7 +24,7 @@ pub fn parse(tokens: List(Token)) -> Result(Schedule, ParseError) {
   use #(timing, rest) <- result.try(parse_timing(rest))
   use #(days, rest) <- result.try(parse_days(rest))
   use #(bounds, rest) <- result.try(parse_bounds(rest))
-  use #(exclusion, rest) <- result.try(parse_exclusion(rest))
+  use #(exclusions, rest) <- result.try(parse_exclusions(rest))
 
   case rest {
     [] ->
@@ -32,7 +33,7 @@ pub fn parse(tokens: List(Token)) -> Result(Schedule, ParseError) {
         timing: timing,
         days: days,
         bounds: bounds,
-        exclusion: exclusion,
+        exclusion: exclusions,
       ))
 
     rest -> Error(InvalidSchedule(string.inspect(rest)))
@@ -454,19 +455,62 @@ fn parse_bounds(
   }
 }
 
-fn parse_exclusion(
+fn require(option: Option(a), error: ParseError) -> Result(a, ParseError) {
+  case option {
+    Some(value) -> Ok(value)
+    None -> Error(error)
+  }
+}
+
+fn parse_exclusions(
+  tokens: List(Token),
+) -> Result(#(Option(List(Exclusion)), List(Token)), ParseError) {
+  case tokens {
+    [token.Except, ..] -> {
+      use #(exclusions, rest) <- result.try(collect_exclusions(tokens, []))
+      Ok(#(Some(exclusions), rest))
+    }
+    _ -> Ok(#(None, tokens))
+  }
+}
+
+fn collect_exclusions(
+  tokens: List(Token),
+  acc: List(Exclusion),
+) -> Result(#(List(Exclusion), List(Token)), ParseError) {
+  use #(maybe_excl, rest) <- result.try(parse_single_exclusion(tokens))
+  case maybe_excl {
+    None -> Ok(#(list.reverse(acc), tokens))
+    Some(excl) -> collect_exclusions(rest, [excl, ..acc])
+  }
+}
+
+fn parse_single_exclusion(
   tokens: List(Token),
 ) -> Result(#(Option(Exclusion), List(Token)), ParseError) {
   case tokens {
     [token.Except, token.From, ..rest] -> {
-      use #(maybe_time_range, rest2) <- result.try(
+      use #(maybe_timing, rest2) <- result.try(
         parse_timing([token.From, ..rest]),
       )
-      case maybe_time_range {
-        Some(time_range) -> Ok(#(Some(ast.ExceptTime(time_range)), rest2))
-        None ->
-          Error(InvalidExclusion("expected time range after 'except from'"))
-      }
+
+      use timing <- result.try(require(
+        maybe_timing,
+        InvalidExclusion("expected time range after 'except from'"),
+      ))
+
+      Ok(#(Some(ast.ExceptTime(timing)), rest2))
+    }
+
+    [token.Except, token.At, ..rest] -> {
+      use #(maybe_timing, rest2) <- result.try(parse_timing([token.At, ..rest]))
+
+      use timing <- result.try(require(
+        maybe_timing,
+        InvalidExclusion("expected time range after 'except at'"),
+      ))
+
+      Ok(#(Some(ast.ExceptTime(timing)), rest2))
     }
 
     [token.Except, token.Weekdays, ..rest] ->
@@ -477,10 +521,26 @@ fn parse_exclusion(
 
     [token.Except, token.On, ..rest] -> {
       use #(maybe_days, rest2) <- result.try(parse_days([token.On, ..rest]))
-      case maybe_days {
-        Some(days) -> Ok(#(Some(ast.ExceptDays(days)), rest2))
-        None -> Error(InvalidExclusion("expected days after 'except on'"))
-      }
+
+      use days <- result.try(require(
+        maybe_days,
+        InvalidExclusion("expected days after 'except on'"),
+      ))
+
+      Ok(#(Some(ast.ExceptDays(days)), rest2))
+    }
+
+    [token.Except, token.Starting, ..rest] -> {
+      use #(maybe_bounds, rest2) <- result.try(
+        parse_bounds([token.Starting, ..rest]),
+      )
+
+      use bounds <- result.try(require(
+        maybe_bounds,
+        InvalidExclusion("expected bounds expression after 'except starting'"),
+      ))
+
+      Ok(#(Some(ast.ExceptBounds(bounds)), rest2))
     }
 
     [token.Except, ..] ->

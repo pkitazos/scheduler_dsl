@@ -412,7 +412,7 @@ pub fn exclusion_except_on_clause_group_test() {
   once("except on weekends")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), exclusion: Some(ast.ExceptDays(ast.Weekends))),
+    ast.Schedule(..schedule(), exclusion: Some([ast.ExceptDays(ast.Weekends)])),
   ))
 }
 
@@ -422,7 +422,7 @@ pub fn exclusion_except_on_clause_day_test() {
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
-      exclusion: Some(ast.ExceptDays(ast.SpecificDays([ast.Mon]))),
+      exclusion: Some([ast.ExceptDays(ast.SpecificDays([ast.Mon]))]),
     ),
   ))
 }
@@ -433,7 +433,7 @@ pub fn exclusion_except_on_clause_ordinal_test() {
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
-      exclusion: Some(ast.ExceptDays(ast.OrdinalDays([ast.DayOfMonth(1)]))),
+      exclusion: Some([ast.ExceptDays(ast.OrdinalDays([ast.DayOfMonth(1)]))]),
     ),
   ))
 }
@@ -444,16 +444,67 @@ pub fn exclusion_except_from_to_test() {
   |> should.equal(Ok(
     ast.Schedule(
       ..schedule(),
-      exclusion: Some(
+      exclusion: Some([
         ast.ExceptTime(ast.TimeRange(from: ast.Time(22, 0), to: ast.Time(6, 0))),
-      ),
+      ]),
     ),
   ))
 }
 
-// TODO: except at 12:00 — not supported yet (spec: "except" time_clause)
-// TODO: except at 12:00 and 13:00
-// TODO: multiple exclusions — spec says exclusion+, parser only handles one
+pub fn exclusion_except_at_time_test() {
+  once("except at 12:00")
+  |> parse()
+  |> should.equal(Ok(
+    ast.Schedule(
+      ..schedule(),
+      exclusion: Some([
+        ast.ExceptTime(ast.At([ast.Time(12, 0)])),
+      ]),
+    ),
+  ))
+}
+
+pub fn exclusion_except_at_time_list_test() {
+  once("except at 12:00 and 13:00")
+  |> parse()
+  |> should.equal(Ok(
+    ast.Schedule(
+      ..schedule(),
+      exclusion: Some([
+        ast.ExceptTime(ast.At([ast.Time(12, 0), ast.Time(13, 0)])),
+      ]),
+    ),
+  ))
+}
+
+pub fn exclusion_multiple_test() {
+  once("except on weekends except from 22:00 to 06:00")
+  |> parse()
+  |> should.equal(Ok(
+    ast.Schedule(
+      ..schedule(),
+      exclusion: Some([
+        ast.ExceptDays(ast.Weekends),
+        ast.ExceptTime(ast.TimeRange(from: ast.Time(22, 0), to: ast.Time(6, 0))),
+      ]),
+    ),
+  ))
+}
+
+pub fn exclusion_multiple_three_test() {
+  once("except on weekends except from 22:00 to 06:00 except on the 1st")
+  |> parse()
+  |> should.equal(Ok(
+    ast.Schedule(
+      ..schedule(),
+      exclusion: Some([
+        ast.ExceptDays(ast.Weekends),
+        ast.ExceptTime(ast.TimeRange(from: ast.Time(22, 0), to: ast.Time(6, 0))),
+        ast.ExceptDays(ast.OrdinalDays([ast.DayOfMonth(1)])),
+      ]),
+    ),
+  ))
+}
 
 // ── Full schedule ───────────────────────────────────────────────────
 // schedule := frequency time_clause? on_clause? bounds? exclusions?

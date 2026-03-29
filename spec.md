@@ -73,6 +73,7 @@ bounds           := "starting" date
 
 exclusion        := "except" on_clause
                   | "except" time_clause
+                  | "except" bounds
 
 exclusions       := exclusion+
 ```
