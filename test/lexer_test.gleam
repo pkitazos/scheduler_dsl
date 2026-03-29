@@ -189,7 +189,7 @@ pub fn frequency_sugar_annually_test() {
 
 // ------
 
-pub fn frequency_every_n_unit_test() {
+pub fn frequency_every_5_minutes_test() {
   lexer.lex("every 5 minutes")
   |> should.equal(Ok([token.Every, token.Integer(5), token.Minutes]))
 }

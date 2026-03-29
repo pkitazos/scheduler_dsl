@@ -89,8 +89,7 @@ pub fn frequency_every_2_hours_test() {
   ))
 }
 
-// every 1 day fails
-pub fn frequency_every_11_day_test() {
+pub fn frequency_every_11_days_test() {
   parse("every 11 days")
   |> should.equal(Ok(
     ast.Schedule(..schedule(), frequency: ast.Every(11, ast.Days)),
@@ -164,7 +163,7 @@ pub fn time_clause_from_to_test() {
   ))
 }
 
-pub fn time_clause_from_test() {
+pub fn time_clause_from_incomplete_error_test() {
   once("from 08:00")
   |> parse()
   |> should.equal(
@@ -372,13 +371,13 @@ pub fn bounds_starting_until_test() {
   ))
 }
 
-pub fn bounds_starting_no_date_test() {
+pub fn bounds_starting_no_date_error_test() {
   once("starting")
   |> parse()
   |> should.equal(Error(parser.InvalidBounds("expected date after `starting`")))
 }
 
-pub fn bounds_starting_until_no_end_date_test() {
+pub fn bounds_starting_until_no_end_date_error_test() {
   once("starting 2024-01-01 until")
   |> parse()
   |> should.equal(Error(parser.InvalidBounds("expected date after `until`")))
@@ -534,7 +533,3 @@ pub fn full_schedule_freq_timing_days_test() {
     )),
   )
 }
-// TODO: daily at 09:00 starting 2024-01-01
-// TODO: every 30 minutes on weekdays except on friday
-// TODO: hourly from 09:00 to 17:00 on weekdays — will fail (from...to)
-// TODO: daily at 09:00 on weekdays starting 2024-01-01 until 2024-12-31
