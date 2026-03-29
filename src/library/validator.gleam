@@ -38,7 +38,17 @@ pub fn validate(schedule: ast.Schedule) -> Result(ast.Schedule, ValidatorError) 
       }
     }
 
-    None -> Ok(schedule)
+    None -> {
+      case schedule.bounds {
+        Some(bounds) -> {
+          use bounds <- result.try(validate_bounds(bounds))
+
+          Ok(ast.Schedule(..schedule, bounds: Some(bounds)))
+        }
+
+        None -> Ok(schedule)
+      }
+    }
   }
 }
 
@@ -57,15 +67,14 @@ fn validate_timing(timing: ast.Timing) -> Result(ast.Timing, ValidatorError) {
   case timing {
     ast.TimeRange(from, to) if from == to -> {
       use _from <- result.try(validate_time_result(from))
-      use _to <- result.try(validate_time_result(to))
-
-      case from == to {
-        True -> Error(InvalidTimeRange("invalid range", timing))
-        False -> Ok(timing)
-      }
+      Error(InvalidTimeRange("invalid range", timing))
     }
 
-    ast.TimeRange(_, _) -> Ok(timing)
+    ast.TimeRange(from, to) -> {
+      use _from <- result.try(validate_time_result(from))
+      use _to <- result.try(validate_time_result(to))
+      Ok(timing)
+    }
 
     ast.At(times) -> {
       use _times <- result.try(list.try_map(times, validate_time_result))
