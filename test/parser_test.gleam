@@ -302,6 +302,24 @@ pub fn on_clause_day_multi_list_test() {
   ))
 }
 
+pub fn on_clause_invalid_day_error_test() {
+  once("on 15th")
+  |> parse()
+  |> should.equal(Error(parser.InvalidDays("token not a valid day")))
+}
+
+pub fn on_clause_day_dangling_comma_error_test() {
+  once("on monday,")
+  |> parse()
+  |> should.equal(Error(parser.InvalidDays("expected day after comma")))
+}
+
+pub fn on_clause_day_dangling_and_error_test() {
+  once("on monday and")
+  |> parse()
+  |> should.equal(Error(parser.InvalidDays("expected day after `and`")))
+}
+
 // ── On clause: bare_ordinal_list ────────────────────────────────────
 
 pub fn on_clause_bare_ordinal_test() {
@@ -366,6 +384,29 @@ pub fn on_clause_bare_ordinal_list_with_last_test() {
   ))
 }
 
+pub fn on_clause_ordinal_comma_then_last_test() {
+  once("on the 1st, last")
+  |> parse()
+  |> should.equal(Ok(
+    ast.Schedule(
+      ..schedule(),
+      days: Some(ast.OrdinalDays([ast.DayOfMonth(1), ast.Last])),
+    ),
+  ))
+}
+
+pub fn on_clause_ordinal_dangling_comma_error_test() {
+  once("on the 1st,")
+  |> parse()
+  |> should.equal(Error(parser.InvalidDays("expected ordinal after comma")))
+}
+
+pub fn on_clause_ordinal_dangling_and_error_test() {
+  once("on the 1st and")
+  |> parse()
+  |> should.equal(Error(parser.InvalidDays("expected ordinal after `and`")))
+}
+
 // ── On clause: qualified_ordinal_list ───────────────────────────────
 
 pub fn on_clause_qualified_ordinal_first_test() {
@@ -426,6 +467,28 @@ pub fn on_clause_qualified_ordinal_and_test() {
       ),
     ),
   ))
+}
+
+pub fn on_clause_qualified_ordinal_comma_list_test() {
+  once("on the first monday, last friday")
+  |> parse()
+  |> should.equal(Ok(
+    ast.Schedule(
+      ..schedule(),
+      days: Some(
+        ast.OrdinalDays([
+          ast.NthWeekday(ast.First, ast.Mon),
+          ast.NthWeekday(ast.LastPos, ast.Fri),
+        ]),
+      ),
+    ),
+  ))
+}
+
+pub fn on_clause_qualified_no_weekday_error_test() {
+  once("on the first at")
+  |> parse()
+  |> should.equal(Error(parser.InvalidDays("token not a valid day")))
 }
 
 // ── Bounds ──────────────────────────────────────────────────────────
