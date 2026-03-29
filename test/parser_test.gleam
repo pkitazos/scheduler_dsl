@@ -778,3 +778,67 @@ pub fn full_schedule_freq_timing_days_test() {
     )),
   )
 }
+
+pub fn full_schedule_daily_at_starting_test() {
+  parse("daily at 09:00 starting 2024-01-01")
+  |> should.equal(
+    Ok(ast.Schedule(
+      frequency: ast.Daily,
+      timing: Some(ast.At([ast.Time(9, 0)])),
+      days: None,
+      bounds: Some(
+        ast.Starting(ast.BoundPoint(date: ast.Date(2024, 1, 1), time: None)),
+      ),
+      exclusions: None,
+    )),
+  )
+}
+
+pub fn full_schedule_freq_days_exclusion_test() {
+  parse("every 30 minutes on weekdays except on friday")
+  |> should.equal(
+    Ok(ast.Schedule(
+      frequency: ast.Every(30, ast.Minutes),
+      timing: None,
+      days: Some(ast.Weekdays),
+      bounds: None,
+      exclusions: Some([ast.ExceptDays(ast.SpecificDays([ast.Fri]))]),
+    )),
+  )
+}
+
+pub fn full_schedule_all_clauses_test() {
+  parse("daily at 09:00 on weekdays starting 2024-01-01 until 2024-12-31")
+  |> should.equal(
+    Ok(ast.Schedule(
+      frequency: ast.Daily,
+      timing: Some(ast.At([ast.Time(9, 0)])),
+      days: Some(ast.Weekdays),
+      bounds: Some(ast.Between(
+        from: ast.BoundPoint(date: ast.Date(2024, 1, 1), time: None),
+        to: ast.BoundPoint(date: ast.Date(2024, 12, 31), time: None),
+      )),
+      exclusions: None,
+    )),
+  )
+}
+
+pub fn full_schedule_hourly_from_to_on_weekdays_test() {
+  parse("hourly from 09:00 to 17:00 on weekdays")
+  |> should.equal(
+    Ok(ast.Schedule(
+      frequency: ast.Hourly,
+      timing: Some(ast.TimeRange(from: ast.Time(9, 0), to: ast.Time(17, 0))),
+      days: Some(ast.Weekdays),
+      bounds: None,
+      exclusions: None,
+    )),
+  )
+}
+
+pub fn trailing_tokens_error_test() {
+  parse("daily daily")
+  |> should.equal(
+    Error(parser.InvalidSchedule("unexpected tokens after schedule: `daily`")),
+  )
+}
