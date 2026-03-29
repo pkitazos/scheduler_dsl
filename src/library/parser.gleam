@@ -2,7 +2,6 @@ import gleam/int
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
-import gleam/string
 import library/ast.{
   type DayOfWeek, type Days, type Exclusion, type Frequency, type Ordinal,
   type Position, type Schedule, type Time, type Timing,
@@ -36,7 +35,12 @@ pub fn parse(tokens: List(Token)) -> Result(Schedule, ParseError) {
         exclusions: exclusions,
       ))
 
-    rest -> Error(InvalidSchedule(string.inspect(rest)))
+    rest ->
+      Error(InvalidSchedule(
+        "unexpected tokens after schedule: `"
+        <> token.list_to_string(rest)
+        <> "`",
+      ))
   }
 }
 
@@ -96,7 +100,7 @@ fn parse_frequency(
         "`every "
         <> int.to_string(n)
         <> " "
-        <> string.inspect(other)
+        <> token.to_string(other)
         <> "` doesn't make sense",
       ))
 
@@ -105,12 +109,14 @@ fn parse_frequency(
 
     [token.Every, other, ..] ->
       Error(InvalidFrequency(
-        "`every " <> string.inspect(other) <> "` doesn't make sense",
+        "`every " <> token.to_string(other) <> "` doesn't make sense",
       ))
 
     other ->
       Error(InvalidFrequency(
-        "`" <> string.inspect(other) <> "` doesn't include a valid frequency",
+        "`"
+        <> token.list_to_string(other)
+        <> "` doesn't include a valid frequency",
       ))
   }
 }
@@ -511,7 +517,7 @@ fn parse_single_exclusion(
 
       use timing <- result.try(require(
         maybe_timing,
-        InvalidExclusion("expected time range after 'except from'"),
+        InvalidExclusion("expected time range after `except from`"),
       ))
 
       Ok(#(Some(ast.ExceptTime(timing)), rest2))
@@ -522,7 +528,7 @@ fn parse_single_exclusion(
 
       use timing <- result.try(require(
         maybe_timing,
-        InvalidExclusion("expected time range after 'except at'"),
+        InvalidExclusion("expected time after `except at`"),
       ))
 
       Ok(#(Some(ast.ExceptTime(timing)), rest2))
@@ -533,7 +539,7 @@ fn parse_single_exclusion(
 
       use days <- result.try(require(
         maybe_days,
-        InvalidExclusion("expected days after 'except on'"),
+        InvalidExclusion("expected days after `except on`"),
       ))
 
       Ok(#(Some(ast.ExceptDays(days)), rest2))
@@ -546,14 +552,14 @@ fn parse_single_exclusion(
 
       use bounds <- result.try(require(
         maybe_bounds,
-        InvalidExclusion("expected bounds expression after 'except starting'"),
+        InvalidExclusion("expected bounds expression after `except starting`"),
       ))
 
       Ok(#(Some(ast.ExceptBounds(bounds)), rest2))
     }
 
     [token.Except, ..] ->
-      Error(InvalidExclusion("expected days or time range after 'except'"))
+      Error(InvalidExclusion("expected days or time range after `except`"))
 
     _ -> Ok(#(None, tokens))
   }
