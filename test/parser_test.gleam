@@ -68,6 +68,27 @@ pub fn frequency_every_minute_test() {
   ))
 }
 
+pub fn frequency_every_1_second_test() {
+  parse("every 1 second")
+  |> should.equal(Ok(
+    ast.Schedule(..schedule(), frequency: ast.Every(1, ast.Seconds)),
+  ))
+}
+
+pub fn frequency_every_1_minute_test() {
+  parse("every 1 minute")
+  |> should.equal(Ok(
+    ast.Schedule(..schedule(), frequency: ast.Every(1, ast.Minutes)),
+  ))
+}
+
+pub fn frequency_every_1_day_test() {
+  parse("every 1 day")
+  |> should.equal(Ok(
+    ast.Schedule(..schedule(), frequency: ast.Every(1, ast.Days)),
+  ))
+}
+
 pub fn frequency_every_30_seconds_test() {
   parse("every 30 seconds")
   |> should.equal(Ok(
@@ -115,6 +136,41 @@ pub fn frequency_every_year_test() {
   |> should.equal(Ok(
     ast.Schedule(..schedule(), frequency: ast.Every(1, ast.Years)),
   ))
+}
+
+pub fn frequency_every_2_years_test() {
+  parse("every 2 years")
+  |> should.equal(Ok(
+    ast.Schedule(..schedule(), frequency: ast.Every(2, ast.Years)),
+  ))
+}
+
+pub fn frequency_every_n_invalid_unit_error_test() {
+  parse("every 5 weekdays")
+  |> should.equal(
+    Error(parser.InvalidFrequency("`every 5 weekdays` doesn't make sense")),
+  )
+}
+
+pub fn frequency_every_n_incomplete_error_test() {
+  parse("every 5")
+  |> should.equal(Error(parser.InvalidFrequency("`every 5` is incomplete")))
+}
+
+pub fn frequency_every_invalid_error_test() {
+  parse("every ,")
+  |> should.equal(
+    Error(parser.InvalidFrequency("`every ,` doesn't make sense")),
+  )
+}
+
+pub fn frequency_missing_error_test() {
+  parse("on weekdays")
+  |> should.equal(
+    Error(parser.InvalidFrequency(
+      "`on weekdays` doesn't include a valid frequency",
+    )),
+  )
 }
 
 // ── Time clause: "at" time_list ─────────────────────────────────────
