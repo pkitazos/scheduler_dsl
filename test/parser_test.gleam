@@ -507,6 +507,22 @@ pub fn bounds_starting_test() {
   ))
 }
 
+pub fn bounds_starting_with_time_test() {
+  once("starting 2024-01-01 at 09:00")
+  |> parse()
+  |> should.equal(Ok(
+    ast.Schedule(
+      ..schedule(),
+      bounds: Some(
+        ast.Starting(ast.BoundPoint(
+          date: ast.Date(2024, 1, 1),
+          time: Some(ast.Time(9, 0)),
+        )),
+      ),
+    ),
+  ))
+}
+
 pub fn bounds_starting_until_test() {
   once("starting 2024-01-01 until 2024-12-31")
   |> parse()
@@ -519,18 +535,6 @@ pub fn bounds_starting_until_test() {
       )),
     ),
   ))
-}
-
-pub fn bounds_starting_no_date_error_test() {
-  once("starting")
-  |> parse()
-  |> should.equal(Error(parser.InvalidBounds("expected date after `starting`")))
-}
-
-pub fn bounds_starting_until_no_end_date_error_test() {
-  once("starting 2024-01-01 until")
-  |> parse()
-  |> should.equal(Error(parser.InvalidBounds("expected date after `until`")))
 }
 
 pub fn bounds_starting_until_with_time_schedule_test() {
@@ -551,6 +555,58 @@ pub fn bounds_starting_until_with_time_schedule_test() {
       )),
     ),
   ))
+}
+
+pub fn bounds_starting_with_time_until_no_time_test() {
+  once("starting 2024-01-01 at 09:00 until 2024-12-31")
+  |> parse()
+  |> should.equal(Ok(
+    ast.Schedule(
+      ..schedule(),
+      bounds: Some(ast.Between(
+        from: ast.BoundPoint(
+          date: ast.Date(2024, 1, 1),
+          time: Some(ast.Time(9, 0)),
+        ),
+        to: ast.BoundPoint(date: ast.Date(2024, 12, 31), time: None),
+      )),
+    ),
+  ))
+}
+
+pub fn bounds_starting_no_time_until_with_time_test() {
+  once("starting 2024-01-01 until 2024-12-31 at 17:00")
+  |> parse()
+  |> should.equal(Ok(
+    ast.Schedule(
+      ..schedule(),
+      bounds: Some(ast.Between(
+        from: ast.BoundPoint(date: ast.Date(2024, 1, 1), time: None),
+        to: ast.BoundPoint(
+          date: ast.Date(2024, 12, 31),
+          time: Some(ast.Time(17, 0)),
+        ),
+      )),
+    ),
+  ))
+}
+
+pub fn bounds_starting_no_date_error_test() {
+  once("starting")
+  |> parse()
+  |> should.equal(Error(parser.InvalidBounds("expected date after `starting`")))
+}
+
+pub fn bounds_starting_until_no_end_date_error_test() {
+  once("starting 2024-01-01 until")
+  |> parse()
+  |> should.equal(Error(parser.InvalidBounds("expected date after `until`")))
+}
+
+pub fn bounds_until_without_starting_error_test() {
+  once("until 2024-01-01")
+  |> parse()
+  |> should.equal(Error(parser.InvalidBounds("expected date after `until`")))
 }
 
 // ── Exclusions ──────────────────────────────────────────────────────
@@ -626,6 +682,37 @@ pub fn exclusion_except_at_time_list_test() {
   ))
 }
 
+pub fn exclusion_except_bounds_starting_test() {
+  once("except starting 2024-06-01")
+  |> parse()
+  |> should.equal(Ok(
+    ast.Schedule(
+      ..schedule(),
+      exclusions: Some([
+        ast.ExceptBounds(
+          ast.Starting(ast.BoundPoint(date: ast.Date(2024, 6, 1), time: None)),
+        ),
+      ]),
+    ),
+  ))
+}
+
+pub fn exclusion_except_bounds_between_test() {
+  once("except starting 2024-06-01 until 2024-06-30")
+  |> parse()
+  |> should.equal(Ok(
+    ast.Schedule(
+      ..schedule(),
+      exclusions: Some([
+        ast.ExceptBounds(ast.Between(
+          from: ast.BoundPoint(date: ast.Date(2024, 6, 1), time: None),
+          to: ast.BoundPoint(date: ast.Date(2024, 6, 30), time: None),
+        )),
+      ]),
+    ),
+  ))
+}
+
 pub fn exclusion_multiple_test() {
   once("except on weekends except from 22:00 to 06:00")
   |> parse()
@@ -653,6 +740,14 @@ pub fn exclusion_multiple_three_test() {
       ]),
     ),
   ))
+}
+
+pub fn exclusion_except_nothing_error_test() {
+  once("except")
+  |> parse()
+  |> should.equal(
+    Error(parser.InvalidExclusion("expected days or time range after `except`")),
+  )
 }
 
 // ── Full schedule ───────────────────────────────────────────────────
