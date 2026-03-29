@@ -1,6 +1,8 @@
 import gleam/dict
+import gleam/int
 import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/order
 import gleam/result
 import library/ast
 
@@ -13,6 +15,7 @@ import library/ast
 pub type ValidatorError {
   InvalidFrequency(String, ast.Frequency)
   InvalidDate(String, ast.Date)
+  InvalidBounds(String, ast.Bounds)
   InvalidTime(String, ast.Time)
   InvalidTimeRange(String, ast.Timing)
   InvalidTimeList(String, List(ast.Time))
@@ -131,12 +134,55 @@ fn validate_bounds(bounds: ast.Bounds) -> Result(ast.Bounds, ValidatorError) {
 
       use end_time <- result.try(option_try(end_time, validate_time_result))
 
-      Ok(ast.Between(
-        ast.BoundPoint(start_date, start_time),
-        ast.BoundPoint(end_date, end_time),
+      use _ <- result.try(options_symmetric(
+        start_time,
+        end_time,
+        InvalidBounds("both bounds must have times or neither should", bounds),
       ))
+
+      let start = ast.BoundPoint(start_date, start_time)
+      let end = ast.BoundPoint(end_date, end_time)
+
+      case validate_bound_point_order(start, end) {
+        True -> Ok(bounds)
+        False ->
+          Error(InvalidBounds("start date can't be after end date", bounds))
+      }
     }
   }
+}
+
+fn date_cmp(d1: ast.Date, d2: ast.Date) -> order.Order {
+  case int.compare(d1.year, d2.year) {
+    order.Eq ->
+      case int.compare(d1.month, d2.month) {
+        order.Eq -> int.compare(d1.day, d2.day)
+        ord -> ord
+      }
+    ord -> ord
+  }
+}
+
+fn bound_point_cmp(b1: ast.BoundPoint, b2: ast.BoundPoint) -> order.Order {
+  case date_cmp(b1.date, b2.date) {
+    order.Eq ->
+      case b1.time, b2.time {
+        Some(t1), Some(t2) ->
+          case int.compare(t1.hour, t2.hour) {
+            order.Eq -> int.compare(t1.minute, t2.minute)
+            ord -> ord
+          }
+        _, _ -> order.Eq
+      }
+    ord -> ord
+  }
+}
+
+fn validate_bound_point_order(
+  start: ast.BoundPoint,
+  end: ast.BoundPoint,
+) -> Bool {
+  bound_point_cmp(start, end) == order.Lt
 }
 
 fn validate_date(date: ast.Date) -> Bool {
@@ -183,5 +229,13 @@ fn option_try(opt: Option(a), f: fn(a) -> Result(b, e)) -> Result(Option(b), e) 
   case opt {
     None -> Ok(None)
     Some(value) -> result.map(f(value), Some)
+  }
+}
+
+/// Checks that two Options are both Some or both None.
+fn options_symmetric(a: Option(a), b: Option(b), err: e) -> Result(Nil, e) {
+  case a, b {
+    Some(_), Some(_) | None, None -> Ok(Nil)
+    _, _ -> Error(err)
   }
 }
