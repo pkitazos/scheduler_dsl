@@ -206,6 +206,25 @@ pub fn time_clause_at_comma_and_test() {
   ))
 }
 
+pub fn time_clause_at_no_time_error_test() {
+  parse("daily at on weekdays")
+  |> should.equal(
+    Error(parser.InvalidTiming("expected time literal HH:mm after `at`")),
+  )
+}
+
+pub fn time_clause_at_dangling_comma_error_test() {
+  once("at 09:00,")
+  |> parse()
+  |> should.equal(Error(parser.InvalidTiming("expected time after comma")))
+}
+
+pub fn time_clause_at_dangling_and_error_test() {
+  once("at 09:00 and")
+  |> parse()
+  |> should.equal(Error(parser.InvalidTiming("expected time after `and`")))
+}
+
 // ── Time clause: "from" time "to" time ──────────────────────────────
 
 pub fn time_clause_from_to_test() {
@@ -225,6 +244,18 @@ pub fn time_clause_from_incomplete_error_test() {
   |> should.equal(
     Error(parser.InvalidTimeRange("expected `to` after first time")),
   )
+}
+
+pub fn time_clause_from_no_time_error_test() {
+  once("from on weekdays")
+  |> parse()
+  |> should.equal(Error(parser.InvalidTimeRange("expected time after `from`")))
+}
+
+pub fn time_clause_from_to_no_end_time_error_test() {
+  once("from 09:00 to on")
+  |> parse()
+  |> should.equal(Error(parser.InvalidTimeRange("expected time after `to`")))
 }
 
 // ── On clause: day_list ─────────────────────────────────────────────
