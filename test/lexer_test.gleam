@@ -454,3 +454,25 @@ pub fn leading_trailing_whitespace_test() {
   lexer.lex("  daily  ")
   |> should.equal(Ok([token.Daily]))
 }
+
+// ── Edge cases and errors ─────────────────────────────────────────
+
+pub fn empty_string_test() {
+  lexer.lex("")
+  |> should.equal(Ok([]))
+}
+
+pub fn whitespace_only_test() {
+  lexer.lex("   ")
+  |> should.equal(Ok([]))
+}
+
+pub fn special_character_error_test() {
+  lexer.lex("@")
+  |> should.be_error()
+}
+
+pub fn unknown_word_error_test() {
+  lexer.lex("foobar")
+  |> should.be_error()
+}
