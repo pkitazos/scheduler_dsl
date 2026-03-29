@@ -18,6 +18,7 @@ pub type ValidatorError {
   InvalidTimeList(String, List(ast.Time))
 }
 
+// todo: this is obviously bad and will get fixed once I'm done writing the individual functions
 pub fn validate(schedule: ast.Schedule) -> Result(ast.Schedule, ValidatorError) {
   use _frequency <- result.try(validate_frequency(schedule.frequency))
 

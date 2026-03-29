@@ -19,6 +19,10 @@ fn with_timing(timing: ast.Timing) -> ast.Schedule {
   ast.Schedule(..schedule(ast.Once), timing: Some(timing))
 }
 
+fn with_bounds(bounds: ast.Bounds) -> ast.Schedule {
+  ast.Schedule(..schedule(ast.Once), bounds: Some(bounds))
+}
+
 // --- Frequency
 
 pub fn every_0_seconds_is_invalid_test() {
@@ -104,25 +108,19 @@ pub fn equal_time_range_is_invalid_test() {
 pub fn time_range_invalid_from_test() {
   with_timing(ast.TimeRange(ast.Time(25, 0), ast.Time(17, 0)))
   |> validator.validate
-  |> should.equal(
-    Error(validator.InvalidTime("invalid time", ast.Time(25, 0))),
-  )
+  |> should.equal(Error(validator.InvalidTime("invalid time", ast.Time(25, 0))))
 }
 
 pub fn time_range_invalid_to_test() {
   with_timing(ast.TimeRange(ast.Time(9, 0), ast.Time(9, 60)))
   |> validator.validate
-  |> should.equal(
-    Error(validator.InvalidTime("invalid time", ast.Time(9, 60))),
-  )
+  |> should.equal(Error(validator.InvalidTime("invalid time", ast.Time(9, 60))))
 }
 
 pub fn equal_invalid_time_range_returns_time_error_test() {
   with_timing(ast.TimeRange(ast.Time(25, 0), ast.Time(25, 0)))
   |> validator.validate
-  |> should.equal(
-    Error(validator.InvalidTime("invalid time", ast.Time(25, 0))),
-  )
+  |> should.equal(Error(validator.InvalidTime("invalid time", ast.Time(25, 0))))
 }
 
 // --- Timing: At
@@ -133,7 +131,8 @@ pub fn at_single_valid_time_test() {
 }
 
 pub fn at_multiple_valid_times_test() {
-  let s = with_timing(ast.At([ast.Time(9, 0), ast.Time(12, 0), ast.Time(17, 0)]))
+  let s =
+    with_timing(ast.At([ast.Time(9, 0), ast.Time(12, 0), ast.Time(17, 0)]))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
@@ -141,25 +140,152 @@ pub fn at_duplicate_times_is_invalid_test() {
   with_timing(ast.At([ast.Time(9, 0), ast.Time(9, 0)]))
   |> validator.validate
   |> should.equal(
-    Error(validator.InvalidTimeList(
-      "invalid time list, contains duplicates",
-      [ast.Time(9, 0)],
-    )),
+    Error(
+      validator.InvalidTimeList("invalid time list, contains duplicates", [
+        ast.Time(9, 0),
+      ]),
+    ),
   )
 }
 
 pub fn at_invalid_time_test() {
   with_timing(ast.At([ast.Time(25, 0)]))
   |> validator.validate
-  |> should.equal(
-    Error(validator.InvalidTime("invalid time", ast.Time(25, 0))),
-  )
+  |> should.equal(Error(validator.InvalidTime("invalid time", ast.Time(25, 0))))
 }
 
 pub fn at_invalid_time_before_duplicate_check_test() {
   with_timing(ast.At([ast.Time(25, 0), ast.Time(25, 0)]))
   |> validator.validate
+  |> should.equal(Error(validator.InvalidTime("invalid time", ast.Time(25, 0))))
+}
+
+// --- Bounds: Starting
+
+pub fn starting_valid_date_no_time_test() {
+  let s = with_bounds(ast.Starting(ast.BoundPoint(ast.Date(2025, 3, 15), None)))
+  validator.validate(s) |> should.equal(Ok(s))
+}
+
+pub fn starting_valid_date_and_time_test() {
+  let s =
+    with_bounds(
+      ast.Starting(ast.BoundPoint(ast.Date(2025, 3, 15), Some(ast.Time(9, 0)))),
+    )
+  validator.validate(s) |> should.equal(Ok(s))
+}
+
+pub fn starting_invalid_date_test() {
+  with_bounds(ast.Starting(ast.BoundPoint(ast.Date(2025, 13, 1), None)))
+  |> validator.validate
   |> should.equal(
-    Error(validator.InvalidTime("invalid time", ast.Time(25, 0))),
+    Error(validator.InvalidDate("invalid date", ast.Date(2025, 13, 1))),
   )
+}
+
+pub fn starting_valid_date_invalid_time_test() {
+  with_bounds(
+    ast.Starting(ast.BoundPoint(ast.Date(2025, 3, 15), Some(ast.Time(25, 0)))),
+  )
+  |> validator.validate
+  |> should.equal(Error(validator.InvalidTime("invalid time", ast.Time(25, 0))))
+}
+
+// --- Bounds: Starting (date edge cases)
+
+pub fn starting_feb_29_leap_year_test() {
+  let s = with_bounds(ast.Starting(ast.BoundPoint(ast.Date(2024, 2, 29), None)))
+  validator.validate(s) |> should.equal(Ok(s))
+}
+
+pub fn starting_feb_29_non_leap_year_test() {
+  with_bounds(ast.Starting(ast.BoundPoint(ast.Date(2025, 2, 29), None)))
+  |> validator.validate
+  |> should.equal(
+    Error(validator.InvalidDate("invalid date", ast.Date(2025, 2, 29))),
+  )
+}
+
+pub fn starting_day_31_on_30_day_month_test() {
+  with_bounds(ast.Starting(ast.BoundPoint(ast.Date(2025, 4, 31), None)))
+  |> validator.validate
+  |> should.equal(
+    Error(validator.InvalidDate("invalid date", ast.Date(2025, 4, 31))),
+  )
+}
+
+pub fn starting_month_0_test() {
+  with_bounds(ast.Starting(ast.BoundPoint(ast.Date(2025, 0, 1), None)))
+  |> validator.validate
+  |> should.equal(
+    Error(validator.InvalidDate("invalid date", ast.Date(2025, 0, 1))),
+  )
+}
+
+pub fn starting_day_0_test() {
+  with_bounds(ast.Starting(ast.BoundPoint(ast.Date(2025, 1, 0), None)))
+  |> validator.validate
+  |> should.equal(
+    Error(validator.InvalidDate("invalid date", ast.Date(2025, 1, 0))),
+  )
+}
+
+// --- Bounds: Between
+
+pub fn between_valid_dates_no_times_test() {
+  let s =
+    with_bounds(ast.Between(
+      ast.BoundPoint(ast.Date(2025, 1, 1), None),
+      ast.BoundPoint(ast.Date(2025, 12, 31), None),
+    ))
+  validator.validate(s) |> should.equal(Ok(s))
+}
+
+pub fn between_valid_dates_and_times_test() {
+  let s =
+    with_bounds(ast.Between(
+      ast.BoundPoint(ast.Date(2025, 1, 1), Some(ast.Time(9, 0))),
+      ast.BoundPoint(ast.Date(2025, 12, 31), Some(ast.Time(17, 0))),
+    ))
+  validator.validate(s) |> should.equal(Ok(s))
+}
+
+pub fn between_invalid_start_date_test() {
+  with_bounds(ast.Between(
+    ast.BoundPoint(ast.Date(2025, 13, 1), None),
+    ast.BoundPoint(ast.Date(2025, 12, 31), None),
+  ))
+  |> validator.validate
+  |> should.equal(
+    Error(validator.InvalidDate("invalid date", ast.Date(2025, 13, 1))),
+  )
+}
+
+pub fn between_invalid_end_date_test() {
+  with_bounds(ast.Between(
+    ast.BoundPoint(ast.Date(2025, 1, 1), None),
+    ast.BoundPoint(ast.Date(2025, 2, 30), None),
+  ))
+  |> validator.validate
+  |> should.equal(
+    Error(validator.InvalidDate("invalid date", ast.Date(2025, 2, 30))),
+  )
+}
+
+pub fn between_invalid_start_time_test() {
+  with_bounds(ast.Between(
+    ast.BoundPoint(ast.Date(2025, 1, 1), Some(ast.Time(25, 0))),
+    ast.BoundPoint(ast.Date(2025, 12, 31), Some(ast.Time(17, 0))),
+  ))
+  |> validator.validate
+  |> should.equal(Error(validator.InvalidTime("invalid time", ast.Time(25, 0))))
+}
+
+pub fn between_invalid_end_time_test() {
+  with_bounds(ast.Between(
+    ast.BoundPoint(ast.Date(2025, 1, 1), Some(ast.Time(9, 0))),
+    ast.BoundPoint(ast.Date(2025, 12, 31), Some(ast.Time(9, 60))),
+  ))
+  |> validator.validate
+  |> should.equal(Error(validator.InvalidTime("invalid time", ast.Time(9, 60))))
 }
