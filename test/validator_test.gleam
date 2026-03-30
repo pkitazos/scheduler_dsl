@@ -30,7 +30,7 @@ pub fn every_0_seconds_is_invalid_test() {
   |> validator.validate
   |> should.equal(
     Error(validator.InvalidFrequency(
-      "frequency can't be 0",
+      "frequency must be 1 or more",
       ast.Every(0, ast.Seconds),
     )),
   )
@@ -41,7 +41,7 @@ pub fn every_0_minutes_is_invalid_test() {
   |> validator.validate
   |> should.equal(
     Error(validator.InvalidFrequency(
-      "frequency can't be 0",
+      "frequency must be 1 or more",
       ast.Every(0, ast.Minutes),
     )),
   )
