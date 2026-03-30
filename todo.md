@@ -12,7 +12,7 @@
 - [x] `SpecificDays`: reject duplicate days
 - [x] `OrdinalDays`: `DayOfMonth(n)` must be 1–31
 - [x] `OrdinalDays`: reject duplicate entries (structural equality)
-- [ ] `OrdinalDays`: informational message when mixing bare and qualified ordinals
+- [x] `OrdinalDays`: informational message when mixing bare and qualified ordinals
 - [ ] `OrdinalDays`: informational message when bare and qualified ordinals might overlap
 
 ## bounds

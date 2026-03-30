@@ -32,6 +32,7 @@ pub fn options_symmetric(a: Option(a), b: Option(b), err: e) -> Result(Nil, e) {
   }
 }
 
+/// Returns elements that appear multiple times in a list
 pub fn find_duplicates(xs: List(a)) -> List(a) {
   xs
   |> list.fold(dict.new(), fn(acc, x) {
