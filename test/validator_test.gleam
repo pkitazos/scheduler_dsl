@@ -425,3 +425,126 @@ pub fn specific_days_duplicate_is_invalid_test() {
     Error(validator.InvalidDaysOfWeek("duplicate days of week", [ast.Mon])),
   )
 }
+
+// --- Days: OrdinalDays
+
+pub fn ordinal_days_empty_list_is_invalid_test() {
+  with_days(ast.OrdinalDays([]))
+  |> validator.validate
+  |> should.equal(Error(validator.InvalidOrdinalDays("empty list", [])))
+}
+
+pub fn ordinal_days_single_day_of_month_test() {
+  let s = with_days(ast.OrdinalDays([ast.DayOfMonth(15)]))
+  validator.validate(s) |> should.equal(Ok(s))
+}
+
+pub fn ordinal_days_multiple_days_of_month_test() {
+  let s = with_days(ast.OrdinalDays([ast.DayOfMonth(1), ast.DayOfMonth(15)]))
+  validator.validate(s) |> should.equal(Ok(s))
+}
+
+pub fn ordinal_days_last_test() {
+  let s = with_days(ast.OrdinalDays([ast.Last]))
+  validator.validate(s) |> should.equal(Ok(s))
+}
+
+pub fn ordinal_days_day_of_month_and_last_mixed_test() {
+  let s = with_days(ast.OrdinalDays([ast.DayOfMonth(1), ast.Last]))
+  validator.validate(s) |> should.equal(Ok(s))
+}
+
+pub fn ordinal_days_last_and_day_of_month_mixed_test() {
+  let s = with_days(ast.OrdinalDays([ast.Last, ast.DayOfMonth(15)]))
+  validator.validate(s) |> should.equal(Ok(s))
+}
+
+pub fn ordinal_days_nth_weekday_test() {
+  let s = with_days(ast.OrdinalDays([ast.NthWeekday(ast.First, ast.Mon)]))
+  validator.validate(s) |> should.equal(Ok(s))
+}
+
+pub fn ordinal_days_multiple_nth_weekdays_test() {
+  let s =
+    with_days(
+      ast.OrdinalDays([
+        ast.NthWeekday(ast.First, ast.Mon),
+        ast.NthWeekday(ast.Third, ast.Fri),
+      ]),
+    )
+  validator.validate(s) |> should.equal(Ok(s))
+}
+
+pub fn ordinal_days_mixed_bare_and_qualified_is_valid_test() {
+  let s =
+    with_days(
+      ast.OrdinalDays([ast.DayOfMonth(1), ast.NthWeekday(ast.First, ast.Mon)]),
+    )
+  validator.validate(s) |> should.equal(Ok(s))
+}
+
+pub fn ordinal_days_duplicate_is_invalid_test() {
+  with_days(ast.OrdinalDays([ast.DayOfMonth(1), ast.DayOfMonth(1)]))
+  |> validator.validate
+  |> should.equal(
+    Error(
+      validator.InvalidOrdinalDays("duplicate ordinal days", [
+        ast.DayOfMonth(1),
+      ]),
+    ),
+  )
+}
+
+pub fn ordinal_days_duplicate_nth_weekday_is_invalid_test() {
+  with_days(
+    ast.OrdinalDays([
+      ast.NthWeekday(ast.First, ast.Mon),
+      ast.NthWeekday(ast.First, ast.Mon),
+    ]),
+  )
+  |> validator.validate
+  |> should.equal(
+    Error(
+      validator.InvalidOrdinalDays("duplicate ordinal days", [
+        ast.NthWeekday(ast.First, ast.Mon),
+      ]),
+    ),
+  )
+}
+
+pub fn ordinal_days_duplicate_last_is_invalid_test() {
+  with_days(ast.OrdinalDays([ast.Last, ast.Last]))
+  |> validator.validate
+  |> should.equal(
+    Error(validator.InvalidOrdinalDays("duplicate ordinal days", [ast.Last])),
+  )
+}
+
+pub fn ordinal_day_of_month_0_is_invalid_test() {
+  with_days(ast.OrdinalDays([ast.DayOfMonth(0)]))
+  |> validator.validate
+  |> should.equal(
+    Error(validator.InvalidDayOfMonth("invalid day of month", ast.DayOfMonth(0))),
+  )
+}
+
+pub fn ordinal_day_of_month_32_is_invalid_test() {
+  with_days(ast.OrdinalDays([ast.DayOfMonth(32)]))
+  |> validator.validate
+  |> should.equal(
+    Error(validator.InvalidDayOfMonth(
+      "invalid day of month",
+      ast.DayOfMonth(32),
+    )),
+  )
+}
+
+pub fn ordinal_day_of_month_1_is_valid_test() {
+  let s = with_days(ast.OrdinalDays([ast.DayOfMonth(1)]))
+  validator.validate(s) |> should.equal(Ok(s))
+}
+
+pub fn ordinal_day_of_month_31_is_valid_test() {
+  let s = with_days(ast.OrdinalDays([ast.DayOfMonth(31)]))
+  validator.validate(s) |> should.equal(Ok(s))
+}
