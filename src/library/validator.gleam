@@ -1,9 +1,12 @@
 import gleam/int
+import gleam/io
 import gleam/list
 import gleam/option.{Some}
 import gleam/order
 import gleam/result
+import gleam/string
 import library/ast
+import library/ast/days
 import library/utils.{find_duplicates, guard, option_try, options_symmetric}
 
 // - [/] frequency
@@ -23,6 +26,7 @@ pub type ValidatorError {
   InvalidDayOfMonth(String, ast.Ordinal)
   InvalidBounds(String, ast.Bounds)
   InvalidDate(String, ast.Date)
+  InvalidExclusions(String, List(ast.Exclusion))
 }
 
 pub fn validate(schedule: ast.Schedule) -> Result(ast.Schedule, ValidatorError) {
@@ -250,3 +254,207 @@ fn validate_time_result(time: ast.Time) -> Result(ast.Time, ValidatorError) {
     False -> Error(InvalidTime("invalid time", time))
   }
 }
+
+// - [ ] reject exclusion that is a strict subset of another exclusion
+pub fn validate_exclusions(
+  exclusions: List(ast.Exclusion),
+) -> Result(List(ast.Exclusion), ValidatorError) {
+  case exclusions {
+    [] -> Error(InvalidExclusions("empty list", []))
+    xs -> {
+      use _ <- result.try(
+        no_duplicates(xs, fn(dups) {
+          InvalidExclusions("duplicate exclusions", dups)
+        }),
+      )
+
+      // we have three kinds of exclusions which each need to be handled slightly differently
+      // so we'll separate our their innards into three separate lists
+      // the `list.group` function seemed really cool for this, but then maps in gleam are pretty under-powered
+      // so idk what to do from here
+
+      let _map =
+        list.group(xs, fn(x) {
+          case x {
+            ast.ExceptDays(_) -> "days"
+            ast.ExceptTime(_) -> "time"
+            ast.ExceptBounds(_) -> "bounds"
+          }
+        })
+
+      // haven't figured out the best way to do this yet, so for now we'll go the long way around
+      // and filter each one with an assert.
+      // this is obviously not the right way to do it, but unfortunately we can't pattern match on dictionaries
+
+      xs
+      |> list.filter_map(fn(x) {
+        case x {
+          ast.ExceptDays(ys) -> Ok(ys)
+          _ -> Error(Nil)
+        }
+      })
+      |> handle_days
+
+      // for now we just discard the times and bounds cause we're only working on the days validation
+
+      let _times =
+        list.filter_map(xs, fn(x) {
+          case x {
+            ast.ExceptTime(ys) -> Ok(ys)
+            _ -> Error(Nil)
+          }
+        })
+
+      let _bounds =
+        list.filter_map(xs, fn(x) {
+          case x {
+            ast.ExceptBounds(ys) -> Ok(ys)
+            _ -> Error(Nil)
+          }
+        })
+
+      Ok(exclusions)
+    }
+  }
+}
+
+// todo: name and signature are temporary
+fn handle_days(days: List(ast.Days)) -> Nil {
+  let pairs =
+    days
+    // get all pair combinations
+    |> list.combination_pairs()
+    // sort em (maybe pointless, still haven't really figured out what data structure works best here)
+    // right now we're using sorted tuples and then passing them to the `contained_in` function
+    // which tells us the "level of containment" of the second argument in reference to the first
+    |> list.map(fn(x) {
+      let #(a, b) = x
+      let assert [a, b] = list.sort([a, b], days.sort_days) |> list.reverse
+      #(a, b, contained_in(a, b))
+    })
+    |> list.filter_map(fn(x) {
+      let #(_, _, containment) = x
+      case containment {
+        days.FullyContained | days.PartiallyContained -> Ok(x)
+        _ -> Error(Nil)
+      }
+    })
+
+  // io.println("before:\n" <> string.inspect(days))
+  // io.println("sorted:\n" <> string.inspect(list.sort(days, days.sort_days)))
+
+  io.println("\n\n" <> string.inspect(pairs))
+
+  // this is our test input:
+  //    "except Sunday, Monday and Tuesday ; except Weekends ; except Weekdays ; except Saturday"
+
+  // this is what the test input produces so far
+  let _ = [
+    #(
+      ast.Weekends,
+      ast.SpecificDays([ast.Sun, ast.Mon, ast.Tue]),
+      days.PartiallyContained,
+    ),
+    #(
+      ast.Weekdays,
+      ast.SpecificDays([ast.Sun, ast.Mon, ast.Tue]),
+      days.PartiallyContained,
+    ),
+    #(ast.Weekends, ast.SpecificDays([ast.Sat]), days.FullyContained),
+  ]
+
+  // maybe that's enough to produce the errors / warning we want
+  // we'd be able to say something like:
+  //    "`ast.SpecificDays([ast.Sun, ast.Mon, ast.Tue])` is contained in `ast.Weekdays` and so can be omitted"
+  // or
+  //    "`ast.SpecificDays([ast.Sat])` is a strict subset of `ast.Weekdends` and so can be omitted"
+
+  // Now, it would be _really_ cool if we could look at the test input and just deduce the smallest possible combination that covers everything.
+  // in this case we can just reduce this:
+  //
+  //    - Sunday, Monday and Tuesday
+  //    - Weekends
+  //    - Weekdays
+  //    - Saturday
+  //
+  // to this:
+  //
+  //    - Weekends
+  //    - Weekdays
+  //
+  // which is sorta the same as `ast.Every(1, ast.Days)` but that's a whole other can of worms
+
+  Nil
+}
+
+pub fn contained_in(d1: ast.Days, d2: ast.Days) -> days.Containment {
+  // ! assumes that lists have all been deduped
+  case d1, d2 {
+    ast.OrdinalDays(_), _ -> days.NeedContext
+    _, ast.OrdinalDays(_) -> days.NeedContext
+
+    ast.Weekdays, ast.Weekends -> days.NoOverlap
+    ast.Weekends, ast.Weekdays -> days.NoOverlap
+
+    // should not be reachable from previous check
+    ast.Weekdays, ast.Weekdays -> days.FullyContained
+    ast.Weekends, ast.Weekends -> days.FullyContained
+
+    ast.Weekdays, ast.SpecificDays(days) -> {
+      // any days of the week contained within days should be flagged
+      days.overlap_with(days, days.weekdays())
+    }
+
+    ast.Weekends, ast.SpecificDays(days) -> {
+      // if Sat or Sun are in days should be flagged
+      days.overlap_with(days, days.weekend())
+    }
+
+    ast.SpecificDays(d1), ast.SpecificDays(d2) -> {
+      // check if the two lists overlap
+      // emit warning that these could be merged into one clause
+      days.overlap_with(d1, d2)
+    }
+    ast.SpecificDays(days), ast.Weekdays -> {
+      // any days of the week contained within days should be flagged
+      days.overlap_with(days, days.weekdays())
+    }
+    ast.SpecificDays(days), ast.Weekends -> {
+      // if Sat AND Sun are in days should be flagged
+      // ? maybe not though
+      days.overlap_with(days, days.weekend())
+    }
+  }
+}
+// type Days {
+//   Weekdays
+//   Weekends
+//   SpecificDays(List(DayOfWeek))
+//   OrdinalDays(List(Ordinal))
+// }
+
+// type DayOfWeek = Mon | Tue | Wed | Thu | Fri | Sat | Sun
+
+// type Ordinal {
+//   DayOfMonth(Int)
+//   Last
+//   NthWeekday(Position, DayOfWeek)
+// }
+
+// type Position = First | Second | Third | Fourth | Fifth | LastPos
+
+// type Timing {
+//   At(times: List(Time))
+//   TimeRange(from: Time, to: Time)
+// }
+
+// type Bounds {
+//   Starting(BoundPoint)
+//   Between(from: BoundPoint, to: BoundPoint)
+// }
+
+// type Exclusion {
+//   ExceptDays(Days)
+//   ExceptTime(Timing)
+//   ExceptBounds(Bounds)
+// }
