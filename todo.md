@@ -1,12 +1,12 @@
 # Validator Rules
 
 ## frequency
-- [/] `Every.amount` must be > 0
+- [x] `Every.amount` must be > 0
 
 ## timing
-- [/] validate all times (hour 0–23, minute 0–59)
-- [/] `At`: reject duplicate times
-- [/] `TimeRange`: reject `from == to`
+- [x] validate all times (hour 0–23, minute 0–59)
+- [x] `At`: reject duplicate times
+- [x] `TimeRange`: reject `from == to`
 
 ## days
 - [ ] `SpecificDays`: reject duplicate days
@@ -18,7 +18,7 @@
 ## bounds
 - [x] validate dates
 - [x] validate times
-- [ ] `Between`: start must be before end
+- [x] `Between`: start must be before end
 
 ## exclusions
 - [ ] reject duplicate exclusions (structural equality)

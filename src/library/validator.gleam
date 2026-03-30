@@ -146,7 +146,7 @@ fn validate_bounds(bounds: ast.Bounds) -> Result(ast.Bounds, ValidatorError) {
       case validate_bound_point_order(start, end) {
         True -> Ok(bounds)
         False ->
-          Error(InvalidBounds("start date can't be after end date", bounds))
+          Error(InvalidBounds("end date must be after start date", bounds))
       }
     }
   }

@@ -94,6 +94,11 @@ pub fn valid_time_range_test() {
   validator.validate(s) |> should.equal(Ok(s))
 }
 
+pub fn valid_wrapping_time_range_test() {
+  let s = with_timing(ast.TimeRange(ast.Time(22, 0), ast.Time(6, 0)))
+  validator.validate(s) |> should.equal(Ok(s))
+}
+
 pub fn equal_time_range_is_invalid_test() {
   with_timing(ast.TimeRange(ast.Time(9, 0), ast.Time(9, 0)))
   |> validator.validate
@@ -138,6 +143,18 @@ pub fn at_multiple_valid_times_test() {
 
 pub fn at_duplicate_times_is_invalid_test() {
   with_timing(ast.At([ast.Time(9, 0), ast.Time(9, 0)]))
+  |> validator.validate
+  |> should.equal(
+    Error(
+      validator.InvalidTimeList("invalid time list, contains duplicates", [
+        ast.Time(9, 0),
+      ]),
+    ),
+  )
+}
+
+pub fn at_non_adjacent_duplicate_times_is_invalid_test() {
+  with_timing(ast.At([ast.Time(9, 0), ast.Time(12, 0), ast.Time(9, 0)]))
   |> validator.validate
   |> should.equal(
     Error(
@@ -272,6 +289,34 @@ pub fn between_invalid_end_date_test() {
   )
 }
 
+pub fn between_invalid_bounds_test() {
+  let s =
+    ast.Between(
+      ast.BoundPoint(ast.Date(2025, 12, 31), None),
+      ast.BoundPoint(ast.Date(2025, 1, 1), None),
+    )
+
+  with_bounds(s)
+  |> validator.validate
+  |> should.equal(
+    Error(validator.InvalidBounds("end date must be after start date", s)),
+  )
+}
+
+pub fn between_invalid_no_bounds_test() {
+  let s =
+    ast.Between(
+      ast.BoundPoint(ast.Date(2025, 1, 1), None),
+      ast.BoundPoint(ast.Date(2025, 1, 1), None),
+    )
+
+  with_bounds(s)
+  |> validator.validate
+  |> should.equal(
+    Error(validator.InvalidBounds("end date must be after start date", s)),
+  )
+}
+
 pub fn between_invalid_start_time_test() {
   with_bounds(ast.Between(
     ast.BoundPoint(ast.Date(2025, 1, 1), Some(ast.Time(25, 0))),
@@ -288,4 +333,36 @@ pub fn between_invalid_end_time_test() {
   ))
   |> validator.validate
   |> should.equal(Error(validator.InvalidTime("invalid time", ast.Time(9, 60))))
+}
+
+pub fn between_invalid_bounds_asymmetry_some_none_test() {
+  let s =
+    ast.Between(
+      ast.BoundPoint(ast.Date(2025, 1, 1), Some(ast.Time(0, 0))),
+      ast.BoundPoint(ast.Date(2025, 12, 31), None),
+    )
+  with_bounds(s)
+  |> validator.validate
+  |> should.equal(
+    Error(validator.InvalidBounds(
+      "both bounds must have times or neither should",
+      s,
+    )),
+  )
+}
+
+pub fn between_invalid_bounds_asymmetry_none_some_test() {
+  let s =
+    ast.Between(
+      ast.BoundPoint(ast.Date(2025, 1, 1), None),
+      ast.BoundPoint(ast.Date(2025, 12, 31), Some(ast.Time(23, 59))),
+    )
+  with_bounds(s)
+  |> validator.validate
+  |> should.equal(
+    Error(validator.InvalidBounds(
+      "both bounds must have times or neither should",
+      s,
+    )),
+  )
 }
