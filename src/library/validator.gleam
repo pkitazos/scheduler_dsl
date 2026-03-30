@@ -1,6 +1,6 @@
 import gleam/int
 import gleam/list
-import gleam/option.{None, Some}
+import gleam/option.{Some}
 import gleam/order
 import gleam/result
 import library/ast
@@ -8,7 +8,7 @@ import library/utils.{find_duplicates, guard, option_try, options_symmetric}
 
 // - [/] frequency
 // - [/] timing
-// - [ ] days
+// - [/] days
 // - [/] bounds
 // - [ ] exclusion
 
@@ -25,7 +25,6 @@ pub type ValidatorError {
   InvalidDate(String, ast.Date)
 }
 
-// todo: this is obviously bad and will get fixed once I'm done writing the individual functions
 pub fn validate(schedule: ast.Schedule) -> Result(ast.Schedule, ValidatorError) {
   use _ <- result.try(validate_frequency(schedule.frequency))
   use _ <- result.try(option_try(schedule.timing, validate_timing))
