@@ -1,4 +1,3 @@
-import gleam/int
 import gleam/list
 import gleam/order
 import library/ast
@@ -10,27 +9,6 @@ pub fn weekdays() {
 
 pub fn weekend() {
   [ast.Sat, ast.Sun]
-}
-
-/// Comparator for sorting day variants by specificity (Weekdays > Weekends > SpecificDays > OrdinalDays).
-pub fn sort_days(a: ast.Days, b: ast.Days) -> order.Order {
-  case a, b {
-    ast.Weekdays, ast.Weekdays -> order.Eq
-    ast.Weekdays, _ -> order.Gt
-
-    ast.Weekends, ast.Weekdays -> order.Lt
-    ast.Weekends, ast.Weekends -> order.Eq
-    ast.Weekends, _ -> order.Gt
-
-    ast.SpecificDays(_), ast.OrdinalDays(_) -> order.Gt
-    ast.SpecificDays(d1), ast.SpecificDays(d2) ->
-      int.compare(list.length(d1), list.length(d2))
-    ast.SpecificDays(_), _ -> order.Lt
-
-    ast.OrdinalDays(d1), ast.OrdinalDays(d2) ->
-      int.compare(list.length(d1), list.length(d2))
-    ast.OrdinalDays(_), _ -> order.Lt
-  }
 }
 
 /// Comparator for sorting days of the week in calendar order (Mon > Tue > ... > Sun).
@@ -65,18 +43,21 @@ pub fn sort_days_of_week(a: ast.DayOfWeek, b: ast.DayOfWeek) -> order.Order {
   }
 }
 
-pub type Containment {
-  FullyContained
-  PartiallyContained
-  NoOverlap
-  NeedContext
+pub type Overlap(a) {
+  Subset(List(a), List(a))
+  Intersection(List(a), List(a), List(a))
+  Disjoint
+  Indeterminate
 }
 
-pub fn overlap_with(d1: List(ast.DayOfWeek), d2: List(ast.DayOfWeek)) {
+pub fn overlap_with(
+  d1: List(ast.DayOfWeek),
+  d2: List(ast.DayOfWeek),
+) -> Overlap(ast.DayOfWeek) {
   // io.println("d1:\n" <> string.inspect(d1))
   // io.println("\nd2:\n" <> string.inspect(d2))
   case intersection(d1, d2) {
-    [] -> NoOverlap
+    [] -> Disjoint
     overlap -> {
       // io.println("overlappin:\n" <> string.inspect(overlap))
 
@@ -85,8 +66,8 @@ pub fn overlap_with(d1: List(ast.DayOfWeek), d2: List(ast.DayOfWeek)) {
       // then it is fully contained
       // otherwise it is partially contained
       case list.length(overlap) == list.length(d1) {
-        False -> PartiallyContained
-        True -> FullyContained
+        False -> Intersection(d1, d2, overlap)
+        True -> Subset(d1, d2)
       }
     }
   }

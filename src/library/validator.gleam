@@ -329,13 +329,11 @@ fn handle_days(days: List(ast.Days)) -> Nil {
     // which tells us the "level of containment" of the second argument in reference to the first
     |> list.map(fn(x) {
       let #(a, b) = x
-      let assert [a, b] = list.sort([a, b], days.sort_days) |> list.reverse
-      #(a, b, contained_in(a, b))
+      contained_in(a, b)
     })
     |> list.filter_map(fn(x) {
-      let #(_, _, containment) = x
-      case containment {
-        days.FullyContained | days.PartiallyContained -> Ok(x)
+      case x {
+        days.Subset(_, _) | days.Intersection(_, _, _) -> Ok(x)
         _ -> Error(Nil)
       }
     })
@@ -353,14 +351,21 @@ fn handle_days(days: List(ast.Days)) -> Nil {
     #(
       ast.Weekends,
       ast.SpecificDays([ast.Sun, ast.Mon, ast.Tue]),
-      days.PartiallyContained,
+      days.Intersection(days.weekend(), [ast.Sun, ast.Mon, ast.Tue], [ast.Sun]),
     ),
     #(
       ast.Weekdays,
       ast.SpecificDays([ast.Sun, ast.Mon, ast.Tue]),
-      days.PartiallyContained,
+      days.Intersection(days.weekdays(), [ast.Sun, ast.Mon, ast.Tue], [
+        ast.Mon,
+        ast.Tue,
+      ]),
     ),
-    #(ast.Weekends, ast.SpecificDays([ast.Sat]), days.FullyContained),
+    #(
+      ast.Weekends,
+      ast.SpecificDays([ast.Sat]),
+      days.Subset(days.weekend(), [ast.Sat]),
+    ),
   ]
 
   // maybe that's enough to produce the errors / warning we want
@@ -387,18 +392,19 @@ fn handle_days(days: List(ast.Days)) -> Nil {
   Nil
 }
 
-pub fn contained_in(d1: ast.Days, d2: ast.Days) -> days.Containment {
+pub fn contained_in(d1: ast.Days, d2: ast.Days) -> days.Overlap(ast.DayOfWeek) {
   // ! assumes that lists have all been deduped
   case d1, d2 {
-    ast.OrdinalDays(_), _ -> days.NeedContext
-    _, ast.OrdinalDays(_) -> days.NeedContext
+    ast.OrdinalDays(_), _ -> days.Indeterminate
+    _, ast.OrdinalDays(_) -> days.Indeterminate
 
-    ast.Weekdays, ast.Weekends -> days.NoOverlap
-    ast.Weekends, ast.Weekdays -> days.NoOverlap
+    ast.Weekdays, ast.Weekends -> days.Disjoint
+    ast.Weekends, ast.Weekdays -> days.Disjoint
 
     // should not be reachable from previous check
-    ast.Weekdays, ast.Weekdays -> days.FullyContained
-    ast.Weekends, ast.Weekends -> days.FullyContained
+    // ! this approach of passing these lists means I'm losing info so my error messages won't be so nice
+    ast.Weekdays, ast.Weekdays -> days.Subset(days.weekdays(), days.weekdays())
+    ast.Weekends, ast.Weekends -> days.Subset(days.weekend(), days.weekend())
 
     ast.Weekdays, ast.SpecificDays(days) -> {
       // any days of the week contained within days should be flagged
