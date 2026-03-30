@@ -23,6 +23,10 @@ fn with_bounds(bounds: ast.Bounds) -> ast.Schedule {
   ast.Schedule(..schedule(ast.Once), bounds: Some(bounds))
 }
 
+fn with_days(days: ast.Days) -> ast.Schedule {
+  ast.Schedule(..schedule(ast.Once), days: Some(days))
+}
+
 // --- Frequency
 
 pub fn negative_frequency_is_invalid_test() {
@@ -381,5 +385,43 @@ pub fn between_invalid_bounds_asymmetry_none_some_test() {
       "both bounds must have times or neither should",
       s,
     )),
+  )
+}
+
+// --- Days: Weekdays / Weekends
+
+pub fn weekdays_is_valid_test() {
+  let s = with_days(ast.Weekdays)
+  validator.validate(s) |> should.equal(Ok(s))
+}
+
+pub fn weekends_is_valid_test() {
+  let s = with_days(ast.Weekends)
+  validator.validate(s) |> should.equal(Ok(s))
+}
+
+// --- Days: SpecificDays
+
+pub fn specific_days_empty_list_is_invalid_test() {
+  with_days(ast.SpecificDays([]))
+  |> validator.validate
+  |> should.equal(Error(validator.InvalidDaysOfWeek("empty list", [])))
+}
+
+pub fn specific_days_single_day_test() {
+  let s = with_days(ast.SpecificDays([ast.Mon]))
+  validator.validate(s) |> should.equal(Ok(s))
+}
+
+pub fn specific_days_multiple_days_test() {
+  let s = with_days(ast.SpecificDays([ast.Mon, ast.Wed, ast.Fri]))
+  validator.validate(s) |> should.equal(Ok(s))
+}
+
+pub fn specific_days_duplicate_is_invalid_test() {
+  with_days(ast.SpecificDays([ast.Mon, ast.Tue, ast.Mon]))
+  |> validator.validate
+  |> should.equal(
+    Error(validator.InvalidDaysOfWeek("duplicate days of week", [ast.Mon])),
   )
 }
