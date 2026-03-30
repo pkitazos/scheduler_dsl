@@ -25,6 +25,17 @@ fn with_bounds(bounds: ast.Bounds) -> ast.Schedule {
 
 // --- Frequency
 
+pub fn negative_frequency_is_invalid_test() {
+  schedule(ast.Every(-1, ast.Minutes))
+  |> validator.validate
+  |> should.equal(
+    Error(validator.InvalidFrequency(
+      "frequency must be 1 or more",
+      ast.Every(-1, ast.Minutes),
+    )),
+  )
+}
+
 pub fn every_0_seconds_is_invalid_test() {
   schedule(ast.Every(0, ast.Seconds))
   |> validator.validate
@@ -129,6 +140,12 @@ pub fn equal_invalid_time_range_returns_time_error_test() {
 }
 
 // --- Timing: At
+
+pub fn at_empty_list_is_invalid_test() {
+  with_timing(ast.At([]))
+  |> validator.validate
+  |> should.equal(Error(validator.InvalidTimeList("empty list", [])))
+}
 
 pub fn at_single_valid_time_test() {
   let s = with_timing(ast.At([ast.Time(9, 0)]))
