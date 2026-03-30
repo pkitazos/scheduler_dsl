@@ -1,7 +1,19 @@
-*.beam
-*.ez
-/build
-erl_crash.dump
-.DS_Store
-_tmp/
-*.t.*
+# Deny everything
+*
+
+# Allow directories to be traversed
+!*/
+
+# Allow specific files and extensions
+!.gitignore
+!.github/**
+!src/**
+!test/**
+!gleam.toml
+!manifest.toml
+!README.md
+!spec.md
+!todo.md
+!schedule.txt
+
+build/

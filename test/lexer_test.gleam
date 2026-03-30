@@ -2,7 +2,7 @@ import gleeunit/should
 import library/lexer
 import library/token
 
-// ── Base Types ──────────────────────────────────────────────────────
+// --- Base Types
 // number := [0-9]+
 // time   := HH:MM
 // date   := YYYY-MM-DD
@@ -27,7 +27,7 @@ pub fn date_test() {
   |> should.equal(Ok([token.DateLiteral(2024, 1, 15)]))
 }
 
-// ── Units ───────────────────────────────────────────────────────────
+// --- Units
 // unit := "second" | "seconds"
 //        | "minute" | "minutes"
 //        | "hour" | "hours"
@@ -106,7 +106,7 @@ pub fn unit_years_test() {
   |> should.equal(Ok([token.Years]))
 }
 
-// ── Days ────────────────────────────────────────────────────────────
+// --- Days
 // day := "monday" | "tuesday" | "wednesday" | "thursday"
 //      | "friday" | "saturday" | "sunday"
 
@@ -145,7 +145,7 @@ pub fn day_sunday_test() {
   |> should.equal(Ok([token.Sun]))
 }
 
-// ── Day Groups ──────────────────────────────────────────────────────
+// --- Day Groups
 // day_group := "weekdays" | "weekends"
 
 pub fn day_group_weekdays_test() {
@@ -158,7 +158,7 @@ pub fn day_group_weekends_test() {
   |> should.equal(Ok([token.Weekends]))
 }
 
-// ── Frequency ───────────────────────────────────────────────────────
+// --- Frequency
 // frequency_sugar := "hourly" | "daily" | "weekly" | "monthly" | "annually"
 // frequency       := "every" number unit | frequency_sugar
 
@@ -214,7 +214,7 @@ pub fn frequency_every_1_year_test() {
   |> should.equal(Ok([token.Every, token.Integer(1), token.Year]))
 }
 
-// ── Ordinals ────────────────────────────────────────────────────────
+// --- Ordinals
 // ordinal_suffix  := "st" | "nd" | "rd" | "th"
 // bare_ordinal    := number ordinal_suffix | "last" | "last" "day"
 // word_ordinal    := "first" | "second" | "third" | "fourth" | "fifth" | "last"
@@ -276,7 +276,7 @@ pub fn word_ordinal_last_test() {
   |> should.equal(Ok([token.Last]))
 }
 
-// ── Lists ───────────────────────────────────────────────────────────
+// --- Lists
 // day_list  := day | day "and" day | day ("," day)* "," "and" day
 // time_list := time | time "and" time | time ("," time)* "," "and" time
 
@@ -313,7 +313,7 @@ pub fn time_list_three_test() {
   )
 }
 
-// ── Clauses (token sequences) ───────────────────────────────────────
+// --- Clauses (token sequences)
 // on_clause   := "on" day_list | "on" day_group
 //              | "on" "the" bare_ordinal_list
 //              | "on" "the" qualified_ordinal_list
@@ -402,7 +402,7 @@ pub fn exclusion_except_time_list_test() {
   )
 }
 
-// ── Full schedule sequences ─────────────────────────────────────────
+// --- Full schedule sequences
 // schedule := frequency time_clause? on_clause? bounds? exclusions?
 
 pub fn full_schedule_simple_test() {
@@ -441,7 +441,7 @@ pub fn full_schedule_with_exclusion_test() {
   )
 }
 
-// ── Case insensitivity ──────────────────────────────────────────────
+// --- Case insensitivity
 
 pub fn case_insensitive_test() {
   lexer.lex("Every 5 Minutes On WEEKDAYS")
@@ -455,7 +455,7 @@ pub fn leading_trailing_whitespace_test() {
   |> should.equal(Ok([token.Daily]))
 }
 
-// ── Edge cases and errors ─────────────────────────────────────────
+// --- Edge cases and errors
 
 pub fn empty_string_test() {
   lexer.lex("")

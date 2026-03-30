@@ -4,7 +4,7 @@ import library/ast
 import library/lexer
 import library/parser
 
-// ── Helpers ─────────────────────────────────────────────────────────
+// --- Helpers
 
 fn parse(input: String) -> Result(ast.Schedule, parser.ParseError) {
   let assert Ok(tokens) = lexer.lex(input)
@@ -25,7 +25,7 @@ fn once(expr: String) -> String {
   "once " <> expr
 }
 
-// ── Frequency ───────────────────────────────────────────────────────
+// --- Frequency
 // frequency_sugar := "hourly" | "daily" | "weekly" | "monthly" | "annually"
 // frequency       := "every" number unit | frequency_sugar
 
@@ -173,7 +173,7 @@ pub fn frequency_missing_error_test() {
   )
 }
 
-// ── Time clause: "at" time_list ─────────────────────────────────────
+// --- Time clause: "at" time_list
 // time_clause := "from" time "to" time | "at" time_list
 
 pub fn time_clause_at_single_test() {
@@ -225,7 +225,7 @@ pub fn time_clause_at_dangling_and_error_test() {
   |> should.equal(Error(parser.InvalidTiming("expected time after `and`")))
 }
 
-// ── Time clause: "from" time "to" time ──────────────────────────────
+// --- Time clause: "from" time "to" time
 
 pub fn time_clause_from_to_test() {
   once("from 09:00 to 17:00")
@@ -258,7 +258,7 @@ pub fn time_clause_from_to_no_end_time_error_test() {
   |> should.equal(Error(parser.InvalidTimeRange("expected time after `to`")))
 }
 
-// ── On clause: day_list ─────────────────────────────────────────────
+// --- On clause: day_list
 // on_clause := "on" day_list | "on" day_group
 //            | "on" "the" bare_ordinal_list
 //            | "on" "the" qualified_ordinal_list
@@ -320,7 +320,7 @@ pub fn on_clause_day_dangling_and_error_test() {
   |> should.equal(Error(parser.InvalidDays("expected day after `and`")))
 }
 
-// ── On clause: bare_ordinal_list ────────────────────────────────────
+// --- On clause: bare_ordinal_list
 
 pub fn on_clause_bare_ordinal_test() {
   once("on the 1st")
@@ -407,7 +407,7 @@ pub fn on_clause_ordinal_dangling_and_error_test() {
   |> should.equal(Error(parser.InvalidDays("expected ordinal after `and`")))
 }
 
-// ── On clause: qualified_ordinal_list ───────────────────────────────
+// --- On clause: qualified_ordinal_list
 
 pub fn on_clause_qualified_ordinal_first_test() {
   once("on the first monday")
@@ -491,7 +491,7 @@ pub fn on_clause_qualified_no_weekday_error_test() {
   |> should.equal(Error(parser.InvalidDays("token not a valid day")))
 }
 
-// ── Bounds ──────────────────────────────────────────────────────────
+// --- Bounds
 // bounds := "starting" date | "starting" date "until" date
 
 pub fn bounds_starting_test() {
@@ -609,7 +609,7 @@ pub fn bounds_until_without_starting_error_test() {
   |> should.equal(Error(parser.InvalidBounds("expected date after `until`")))
 }
 
-// ── Exclusions ──────────────────────────────────────────────────────
+// --- Exclusions
 // exclusion  := "except" on_clause | "except" time_clause
 // exclusions := exclusion+
 
@@ -750,7 +750,7 @@ pub fn exclusion_except_nothing_error_test() {
   )
 }
 
-// ── Full schedule ───────────────────────────────────────────────────
+// --- Full schedule
 // schedule := frequency time_clause? on_clause? bounds? exclusions?
 
 pub fn full_schedule_freq_and_days_test() {
