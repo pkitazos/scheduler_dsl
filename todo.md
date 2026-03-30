@@ -21,7 +21,7 @@
 - [x] `Between`: start must be before end
 
 ## exclusions
-- [ ] reject duplicate exclusions (structural equality)
+- [x] reject duplicate exclusions (structural equality)
 - [ ] reject exclusion that is a strict subset of another exclusion
 - [ ] `ExceptTime`: all timing rules carry forward
 - [ ] `ExceptDays`: all days rules carry forward

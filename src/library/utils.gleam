@@ -41,3 +41,8 @@ pub fn find_duplicates(xs: List(a)) -> List(a) {
   |> dict.filter(fn(_, value) { value > 1 })
   |> dict.keys
 }
+
+/// Returns the intersection of two lists
+pub fn intersection(xs: List(a), ys: List(a)) -> List(a) {
+  list.filter(ys, fn(y) { list.contains(xs, y) })
+}

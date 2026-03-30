@@ -6,6 +6,7 @@ import library/ast.{
   type DayOfWeek, type Days, type Exclusion, type Frequency, type Ordinal,
   type Position, type Schedule, type Time, type Timing,
 }
+
 import library/token.{type Token}
 
 pub type ParseError {
@@ -187,7 +188,12 @@ fn parse_days(
   tokens: List(Token),
 ) -> Result(#(Option(Days), List(Token)), ParseError) {
   case tokens {
+    // [token.On, token.Weekdays, ..rest] ->
+    //   Ok(#(Some(ast.SpecificDays(days.weekdays())), rest))
     [token.On, token.Weekdays, ..rest] -> Ok(#(Some(ast.Weekdays), rest))
+
+    // [token.On, token.Weekends, ..rest] ->
+    //   Ok(#(Some(ast.SpecificDays(days.weekend())), rest))
     [token.On, token.Weekends, ..rest] -> Ok(#(Some(ast.Weekends), rest))
 
     [token.On, token.The, token.Ordinal(n), ..rest] -> {
