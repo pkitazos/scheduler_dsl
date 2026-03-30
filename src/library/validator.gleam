@@ -1,67 +1,46 @@
-import gleam/dict
 import gleam/int
 import gleam/list
-import gleam/option.{type Option, None, Some}
+import gleam/option.{None, Some}
 import gleam/order
 import gleam/result
 import library/ast
+import library/utils.{find_duplicates, guard, option_try, options_symmetric}
 
-// - [ ] frequency
-// - [ ] timing
+// - [/] frequency
+// - [/] timing
 // - [ ] days
 // - [/] bounds
 // - [ ] exclusion
 
 pub type ValidatorError {
   InvalidFrequency(String, ast.Frequency)
-  InvalidDate(String, ast.Date)
-  InvalidBounds(String, ast.Bounds)
   InvalidTime(String, ast.Time)
   InvalidTimeRange(String, ast.Timing)
   InvalidTimeList(String, List(ast.Time))
+  InvalidDaysList(String, ast.Days)
+  InvalidDaysOfWeek(String, List(ast.DayOfWeek))
+  InvalidOrdinalDays(String, List(ast.Ordinal))
+  InvalidDayOfMonth(String, ast.Ordinal)
+  InvalidBounds(String, ast.Bounds)
+  InvalidDate(String, ast.Date)
 }
 
 // todo: this is obviously bad and will get fixed once I'm done writing the individual functions
 pub fn validate(schedule: ast.Schedule) -> Result(ast.Schedule, ValidatorError) {
-  use _frequency <- result.try(validate_frequency(schedule.frequency))
+  use _ <- result.try(validate_frequency(schedule.frequency))
+  use _ <- result.try(option_try(schedule.timing, validate_timing))
+  use _ <- result.try(option_try(schedule.days, validate_days))
+  use _ <- result.try(option_try(schedule.bounds, validate_bounds))
 
-  case schedule.timing {
-    Some(timing) -> {
-      use timing <- result.try(validate_timing(timing))
-
-      case schedule.bounds {
-        Some(bounds) -> {
-          use bounds <- result.try(validate_bounds(bounds))
-
-          Ok(
-            ast.Schedule(..schedule, timing: Some(timing), bounds: Some(bounds)),
-          )
-        }
-
-        None -> Ok(ast.Schedule(..schedule, timing: Some(timing)))
-      }
-    }
-
-    None -> {
-      case schedule.bounds {
-        Some(bounds) -> {
-          use bounds <- result.try(validate_bounds(bounds))
-
-          Ok(ast.Schedule(..schedule, bounds: Some(bounds)))
-        }
-
-        None -> Ok(schedule)
-      }
-    }
-  }
+  Ok(schedule)
 }
 
 fn validate_frequency(
   freq: ast.Frequency,
 ) -> Result(ast.Frequency, ValidatorError) {
   case freq {
-    ast.Every(amount: 0, unit: _) ->
-      Error(InvalidFrequency("frequency can't be 0", freq))
+    ast.Every(amount: n, unit: _) if n < 1 ->
+      Error(InvalidFrequency("frequency must be 1 or more", freq))
 
     _ -> Ok(freq)
   }
@@ -80,38 +59,99 @@ fn validate_timing(timing: ast.Timing) -> Result(ast.Timing, ValidatorError) {
       Ok(timing)
     }
 
+    ast.At([]) -> Error(InvalidTimeList("empty list", []))
     ast.At(times) -> {
       use _times <- result.try(list.try_map(times, validate_time_result))
 
-      case find_duplicates(times) {
-        [] -> Ok(timing)
-        dups ->
-          Error(InvalidTimeList("invalid time list, contains duplicates", dups))
-      }
+      use _times <- result.try(
+        no_duplicates(times, fn(dups) {
+          InvalidTimeList("invalid time list, contains duplicates", dups)
+        }),
+      )
+
+      Ok(timing)
     }
   }
 }
 
-fn find_duplicates(xs: List(a)) -> List(a) {
-  xs
-  |> list.fold(dict.new(), fn(acc, x) {
-    dict.upsert(acc, x, fn(count) { option.unwrap(count, 0) + 1 })
-  })
-  |> dict.filter(fn(_, value) { value > 1 })
-  |> dict.keys
+fn validate_days(days: ast.Days) -> Result(ast.Days, ValidatorError) {
+  case days {
+    ast.Weekdays -> Ok(ast.Weekdays)
+
+    ast.Weekends -> Ok(ast.Weekends)
+
+    ast.SpecificDays([]) -> Error(InvalidDaysOfWeek("empty list", []))
+
+    ast.SpecificDays(days_of_week) -> {
+      use _days_of_week <- result.try(
+        no_duplicates(days_of_week, fn(dups) {
+          InvalidDaysOfWeek("duplicate days of week", dups)
+        }),
+      )
+
+      Ok(days)
+    }
+
+    ast.OrdinalDays(ordinals) -> {
+      use _ordinals <- result.try(
+        no_duplicates(ordinals, fn(dups) {
+          InvalidOrdinalDays("duplicate ordinal days", dups)
+        }),
+      )
+
+      use _ <- result.try(case ordinals {
+        [x, ..xs] -> {
+          xs
+          |> list.try_fold(x, fn(acc, val) {
+            case acc, val {
+              ast.DayOfMonth(_), ast.DayOfMonth(_)
+              | ast.DayOfMonth(_), ast.Last
+              | ast.Last, ast.Last
+              | ast.Last, ast.DayOfMonth(_)
+              -> Ok(acc)
+              ast.NthWeekday(_, _), ast.NthWeekday(_, _) -> Ok(acc)
+              // todo: mixed bare/qualified ordinals are valid but we should emit an informational message here
+              _, _ -> Ok(acc)
+            }
+          })
+        }
+
+        [] -> Error(InvalidOrdinalDays("empty list", []))
+      })
+
+      use _ordinals <- result.try(
+        list.try_map(ordinals, fn(o) {
+          case o {
+            ast.DayOfMonth(n) if n > 31 || n < 1 ->
+              Error(InvalidDayOfMonth("invalid day of month", ast.DayOfMonth(n)))
+            _ -> Ok(o)
+          }
+        }),
+      )
+
+      Ok(days)
+    }
+  }
+}
+
+fn no_duplicates(xs: List(a), err_f: fn(List(a)) -> b) -> Result(List(a), b) {
+  case find_duplicates(xs) {
+    [] -> Ok(xs)
+    dups -> Error(err_f(dups))
+  }
 }
 
 fn validate_bounds(bounds: ast.Bounds) -> Result(ast.Bounds, ValidatorError) {
   case bounds {
     ast.Starting(ast.BoundPoint(date, time)) -> {
-      use date <- result.try(guard(
+      use _date <- result.try(guard(
         date,
         validate_date,
         InvalidDate("invalid date", date),
       ))
 
-      use time <- result.try(option_try(time, validate_time_result))
-      Ok(ast.Starting(ast.BoundPoint(date, time)))
+      use _time <- result.try(option_try(time, validate_time_result))
+      Ok(bounds)
     }
 
     ast.Between(
@@ -209,33 +249,5 @@ fn validate_time_result(time: ast.Time) -> Result(ast.Time, ValidatorError) {
   case validate_time(time) {
     True -> Ok(time)
     False -> Error(InvalidTime("invalid time", time))
-  }
-}
-
-// --- Generic helpers
-
-/// Wraps a clause in a Result if it satisfies a predicate.
-fn guard(clause: a, f: fn(a) -> Bool, b) -> Result(a, b) {
-  case f(clause) {
-    True -> Ok(clause)
-    False -> Error(b)
-  }
-}
-
-/// Apply a fallible function to an Option's inner value.
-/// None passes through as Ok(None).
-/// Some(a) becomes Ok(Some(a)) if f succeeds, or Error(e) if it fails.
-fn option_try(opt: Option(a), f: fn(a) -> Result(b, e)) -> Result(Option(b), e) {
-  case opt {
-    None -> Ok(None)
-    Some(value) -> result.map(f(value), Some)
-  }
-}
-
-/// Checks that two Options are both Some or both None.
-fn options_symmetric(a: Option(a), b: Option(b), err: e) -> Result(Nil, e) {
-  case a, b {
-    Some(_), Some(_) | None, None -> Ok(Nil)
-    _, _ -> Error(err)
   }
 }
