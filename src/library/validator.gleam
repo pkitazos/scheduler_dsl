@@ -1,5 +1,4 @@
 import gleam/int
-import gleam/io
 import gleam/list
 import gleam/option.{Some}
 import gleam/order
@@ -27,6 +26,7 @@ pub type ValidatorError {
   InvalidBounds(String, ast.Bounds)
   InvalidDate(String, ast.Date)
   InvalidExclusions(String, List(ast.Exclusion))
+  InvalidExclusionsDays(String)
 }
 
 pub fn validate(schedule: ast.Schedule) -> Result(ast.Schedule, ValidatorError) {
@@ -268,32 +268,17 @@ pub fn validate_exclusions(
         }),
       )
 
-      // we have three kinds of exclusions which each need to be handled slightly differently
-      // so we'll separate our their innards into three separate lists
-      // the `list.group` function seemed really cool for this, but then maps in gleam are pretty under-powered
-      // so idk what to do from here
-
-      let _map =
-        list.group(xs, fn(x) {
+      use _ <- result.try(
+        xs
+        |> list.filter_map(fn(x) {
           case x {
-            ast.ExceptDays(_) -> "days"
-            ast.ExceptTime(_) -> "time"
-            ast.ExceptBounds(_) -> "bounds"
+            ast.ExceptDays(ys) -> Ok(ys)
+            _ -> Error(Nil)
           }
         })
-
-      // haven't figured out the best way to do this yet, so for now we'll go the long way around
-      // and filter each one with an assert.
-      // this is obviously not the right way to do it, but unfortunately we can't pattern match on dictionaries
-
-      xs
-      |> list.filter_map(fn(x) {
-        case x {
-          ast.ExceptDays(ys) -> Ok(ys)
-          _ -> Error(Nil)
-        }
-      })
-      |> handle_days
+        |> handle_specific_days_simple_overlap,
+        // |> handle_oridnal_days_simple_overlap
+      )
 
       // for now we just discard the times and bounds cause we're only working on the days validation
 
@@ -304,6 +289,7 @@ pub fn validate_exclusions(
             _ -> Error(Nil)
           }
         })
+      // then I would follow the same pattern her
 
       let _bounds =
         list.filter_map(xs, fn(x) {
@@ -312,125 +298,61 @@ pub fn validate_exclusions(
             _ -> Error(Nil)
           }
         })
+      // and here
+      // where I would create a pipeline of the different kinds of validations
+      // I already have well defined rules that should be enforced for `time` and `bounds`
+      // it's just a matter of creating the proper pipeline functions
+
+      // then finally, when all the pipelines are in place, I would probably hae to convert them into `use` expressions
+      // and then I can just return `Ok(exclusions)` like I'm doing here and any `Error`s returned by the pipelines
+      // would short-circuit the function and return
 
       Ok(exclusions)
     }
   }
 }
 
-// todo: name and signature are temporary
-fn handle_days(days: List(ast.Days)) -> Nil {
-  let pairs =
+fn handle_specific_days_simple_overlap(
+  days: List(ast.Days),
+) -> Result(List(ast.Days), ValidatorError) {
+  use _ <- result.try(
     days
-    // get all pair combinations
-    |> list.combination_pairs()
-    // sort em (maybe pointless, still haven't really figured out what data structure works best here)
-    // right now we're using sorted tuples and then passing them to the `contained_in` function
-    // which tells us the "level of containment" of the second argument in reference to the first
-    |> list.map(fn(x) {
-      let #(a, b) = x
-      contained_in(a, b)
-    })
-    |> list.filter_map(fn(x) {
-      case x {
-        days.Subset(_, _) | days.Intersection(_, _, _) -> Ok(x)
-        _ -> Error(Nil)
+    |> list.combination_pairs
+    |> list.try_each(fn(p) {
+      case days.overlap_with(p.0, p.1) {
+        Ok(days.Subset(a, b)) -> {
+          Error(InvalidExclusionsDays(
+            string.inspect(a) <> " is contained within " <> string.inspect(b),
+          ))
+        }
+        Ok(days.Intersection(_, _, _)) -> {
+          // todo: make this a warning later on
+          Ok(Nil)
+        }
+        Ok(days.Disjoint) -> {
+          // genuinely no overlap, this one is fine to pass through
+          Ok(Nil)
+        }
+        Error(_) -> {
+          // separate ordinal exclusions may overlap, that is handled elsewhere
+          // ordinal-vs-non-ordinal overlap is also handled in a separate pass
+          // since it requires bounds context to resolve
+          Ok(Nil)
+        }
       }
-    })
+    }),
+  )
 
-  // io.println("before:\n" <> string.inspect(days))
-  // io.println("sorted:\n" <> string.inspect(list.sort(days, days.sort_days)))
-
-  io.println("\n\n" <> string.inspect(pairs))
-
-  // this is our test input:
-  //    "except Sunday, Monday and Tuesday ; except Weekends ; except Weekdays ; except Saturday"
-
-  // this is what the test input produces so far
-  let _ = [
-    #(
-      ast.Weekends,
-      ast.SpecificDays([ast.Sun, ast.Mon, ast.Tue]),
-      days.Intersection(days.weekend(), [ast.Sun, ast.Mon, ast.Tue], [ast.Sun]),
-    ),
-    #(
-      ast.Weekdays,
-      ast.SpecificDays([ast.Sun, ast.Mon, ast.Tue]),
-      days.Intersection(days.weekdays(), [ast.Sun, ast.Mon, ast.Tue], [
-        ast.Mon,
-        ast.Tue,
-      ]),
-    ),
-    #(
-      ast.Weekends,
-      ast.SpecificDays([ast.Sat]),
-      days.Subset(days.weekend(), [ast.Sat]),
-    ),
-  ]
-
-  // maybe that's enough to produce the errors / warning we want
-  // we'd be able to say something like:
-  //    "`ast.SpecificDays([ast.Sun, ast.Mon, ast.Tue])` is contained in `ast.Weekdays` and so can be omitted"
-  // or
-  //    "`ast.SpecificDays([ast.Sat])` is a strict subset of `ast.Weekdends` and so can be omitted"
-
-  // Now, it would be _really_ cool if we could look at the test input and just deduce the smallest possible combination that covers everything.
-  // in this case we can just reduce this:
+  Ok(days)
+  // todo (v2): Minimize exclusion set
+  // Given a list of day exclusions, compute the smallest equivalent set.
   //
-  //    - Sunday, Monday and Tuesday
-  //    - Weekends
-  //    - Weekdays
-  //    - Saturday
-  //
-  // to this:
-  //
-  //    - Weekends
-  //    - Weekdays
-  //
-  // which is sorta the same as `ast.Every(1, ast.Days)` but that's a whole other can of worms
-
-  Nil
-}
-
-pub fn contained_in(d1: ast.Days, d2: ast.Days) -> days.Overlap(ast.DayOfWeek) {
-  // ! assumes that lists have all been deduped
-  case d1, d2 {
-    ast.OrdinalDays(_), _ -> days.Indeterminate
-    _, ast.OrdinalDays(_) -> days.Indeterminate
-
-    ast.Weekdays, ast.Weekends -> days.Disjoint
-    ast.Weekends, ast.Weekdays -> days.Disjoint
-
-    // should not be reachable from previous check
-    // ! this approach of passing these lists means I'm losing info so my error messages won't be so nice
-    ast.Weekdays, ast.Weekdays -> days.Subset(days.weekdays(), days.weekdays())
-    ast.Weekends, ast.Weekends -> days.Subset(days.weekend(), days.weekend())
-
-    ast.Weekdays, ast.SpecificDays(days) -> {
-      // any days of the week contained within days should be flagged
-      days.overlap_with(days, days.weekdays())
-    }
-
-    ast.Weekends, ast.SpecificDays(days) -> {
-      // if Sat or Sun are in days should be flagged
-      days.overlap_with(days, days.weekend())
-    }
-
-    ast.SpecificDays(d1), ast.SpecificDays(d2) -> {
-      // check if the two lists overlap
-      // emit warning that these could be merged into one clause
-      days.overlap_with(d1, d2)
-    }
-    ast.SpecificDays(days), ast.Weekdays -> {
-      // any days of the week contained within days should be flagged
-      days.overlap_with(days, days.weekdays())
-    }
-    ast.SpecificDays(days), ast.Weekends -> {
-      // if Sat AND Sun are in days should be flagged
-      // ? maybe not though
-      days.overlap_with(days, days.weekend())
-    }
-  }
+  // For example, [Sun, Mon, Tue], [Weekends], [Weekdays], [Sat] can be
+  // reduced to just [Weekends, Weekdays]. This is an optimization pass,
+  // not a validation concern and should live in a separate phase after
+  // validation has confirmed all exclusions are individually sound.
+  // Related: if the minimal set covers all 7 days, that's equivalent to
+  // "every day" which might warrant a cross-clause warning.
 }
 // type Days {
 //   Weekdays

@@ -1,7 +1,9 @@
 import gleam/dict
+import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
+import gleam/string
 
 /// Wraps a clause in a Result if it satisfies a predicate.
 pub fn guard(clause: a, f: fn(a) -> Bool, b) -> Result(a, b) {
@@ -45,4 +47,8 @@ pub fn find_duplicates(xs: List(a)) -> List(a) {
 /// Returns the intersection of two lists
 pub fn intersection(xs: List(a), ys: List(a)) -> List(a) {
   list.filter(ys, fn(y) { list.contains(xs, y) })
+}
+
+pub fn debug(thing: a) {
+  io.println("\n" <> string.inspect(thing))
 }
