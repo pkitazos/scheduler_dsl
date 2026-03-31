@@ -1,4 +1,5 @@
 import library/ast
+import library/ast/days
 import library/validator
 
 import gleam/io
@@ -39,8 +40,8 @@ pub fn main() {
 
   validator.validate_exclusions([
     ast.ExceptDays(ast.SpecificDays([ast.Sun, ast.Mon, ast.Tue])),
-    ast.ExceptDays(ast.Weekends),
-    ast.ExceptDays(ast.Weekdays),
+    ast.ExceptDays(ast.SpecificDays(days.weekend())),
+    ast.ExceptDays(ast.SpecificDays(days.weekdays())),
     ast.ExceptDays(ast.SpecificDays([ast.Sat])),
   ])
 }
