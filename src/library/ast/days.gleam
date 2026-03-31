@@ -1,6 +1,5 @@
 import gleam/list
 import gleam/order
-import gleam/result
 import library/ast
 import library/utils.{intersection}
 
@@ -44,45 +43,70 @@ pub fn sort_days_of_week(a: ast.DayOfWeek, b: ast.DayOfWeek) -> order.Order {
   }
 }
 
-pub type Overlap(a) {
-  Subset(a, a)
-  Intersection(a, a, a)
-  Disjoint
-}
-
 /// Compares two `Days` values and determines their set-theoretic relationship.
 ///
 /// Returns `Ok(Subset(a, b))` when `a` is a proper subset of `b`,
 /// `Ok(Intersection(a, b, shared))` when they partially overlap,
 /// `Ok(Disjoint)` when they share nothing, or `Error(Nil)` when
-/// either operand is `OrdinalDays` (requires runtime context to compare).
+/// the two values are of different `Days` variants (e.g. `SpecificDays`
+/// vs `OrdinalDays`), since cross-variant comparison is not meaningful.
 ///
 /// The original `ast.Days` values are preserved in the result so that
 /// error messages can refer to what the user actually wrote.
 ///
 /// Assumes all inner lists have already been de-duplicated upstream.
 pub fn overlap_with(a: ast.Days, b: ast.Days) -> Result(Overlap(ast.Days), Nil) {
-  use d1 <- result.try(case a {
-    ast.SpecificDays(days) -> Ok(days)
-    ast.OrdinalDays(_) -> Error(Nil)
-  })
+  case a, b {
+    ast.SpecificDays(d1), ast.SpecificDays(d2) -> {
+      set_overlap(d1, d2)
+      |> overlap_fmap(ast.SpecificDays)
+      |> Ok()
+    }
+    ast.OrdinalDays(d1), ast.OrdinalDays(d2) -> {
+      set_overlap(d1, d2)
+      |> overlap_fmap(ast.OrdinalDays)
+      |> Ok()
+    }
+    _, _ -> Error(Nil)
+  }
+}
 
-  use d2 <- result.try(case b {
-    ast.SpecificDays(days) -> Ok(days)
-    ast.OrdinalDays(_) -> Error(Nil)
-  })
+pub type Overlap(a) {
+  Subset(a, a)
+  Intersection(a, a, a)
+  Disjoint
+}
 
-  case intersection(d1, d2) {
-    [] -> Ok(Disjoint)
-    overlap -> {
+/// Transforms the inner type of an `Overlap` value while preserving
+/// its structure
+fn overlap_fmap(
+  x: Overlap(List(a)),
+  f: fn(List(a)) -> ast.Days,
+) -> Overlap(ast.Days) {
+  case x {
+    Subset(a, b) -> Subset(f(a), f(b))
+    Intersection(a, b, c) -> Intersection(f(a), f(b), f(c))
+    Disjoint -> Disjoint
+  }
+}
+
+/// Computes the set-theoretic relationship between two lists using
+/// structural equality. Returns `Subset` when the first list is
+/// entirely contained in the second, `Intersection` when they share
+/// some but not all elements, or `Disjoint` when they share nothing.
+///
+/// Assumes both lists have been de-duplicated.
+pub fn set_overlap(xs: List(a), ys: List(a)) -> Overlap(List(a)) {
+  case intersection(xs, ys) {
+    [] -> Disjoint
+    overlap ->
       // if there is overlap
       // and the overlap is the entire length of d1,
       // then it is a strict subset
       // otherwise they just have a non-empty intersection set
-      case list.length(overlap) == list.length(d1) {
-        False -> Ok(Intersection(a, b, ast.SpecificDays(overlap)))
-        True -> Ok(Subset(a, b))
+      case list.length(overlap) == list.length(xs) {
+        False -> Intersection(xs, ys, overlap)
+        True -> Subset(xs, ys)
       }
-    }
   }
 }

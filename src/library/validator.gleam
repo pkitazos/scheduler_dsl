@@ -272,8 +272,7 @@ pub fn validate_exclusions(
             _ -> Error(Nil)
           }
         })
-        |> handle_specific_days_simple_overlap,
-        // |> handle_oridnal_days_simple_overlap
+        |> handle_day_list_simple_overlap,
       )
 
       // for now we just discard the times and bounds cause we're only working on the days validation
@@ -308,7 +307,7 @@ pub fn validate_exclusions(
   }
 }
 
-fn handle_specific_days_simple_overlap(
+fn handle_day_list_simple_overlap(
   days: List(ast.Days),
 ) -> Result(List(ast.Days), ValidatorError) {
   use _ <- result.try(
@@ -330,10 +329,12 @@ fn handle_specific_days_simple_overlap(
           Ok(Nil)
         }
         Error(_) -> {
-          // separate ordinal exclusions may overlap, that is handled elsewhere
-          // ordinal-vs-non-ordinal overlap is also handled in a separate pass
+          // ordinal-vs-non-ordinal overlap may be handled in a separate pass
           // since it requires bounds context to resolve
-          Ok(Nil)
+          // or it may just not be allowed
+          Error(InvalidExclusionsDays(
+            "cannot mix Ordinal and Week days in the same schedule",
+          ))
         }
       }
     }),
@@ -350,72 +351,3 @@ fn handle_specific_days_simple_overlap(
   // Related: if the minimal set covers all 7 days, that's equivalent to
   // "every day" which might warrant a cross-clause warning.
 }
-
-fn handle_oridnal_days_simple_overlap(
-  days: List(ast.Days),
-) -> Result(List(ast.Days), ValidatorError) {
-  // todo: skip over non `ast.OrdinalDays`
-  // for the remaining `ast.OrdinalDays` we need to check
-  // if any given list of days fully contains some other list of days
-  //
-  // so for example:
-  //  { 1st, 2nd, 3rd, 4th } fully contains { 2nd, 4th }
-  // but:
-  //  { 1st, 2nd, 3rd, 4th } only partially contains { 4th, 5th, 6th }
-  //
-  // the mechanics are very similar to the previous function,
-  // we're checking for overlap between different sets of the same kind of days
-  // hence the `_simple` suffix
-  //
-  // there may or may not later be a separate check which checks whether:
-  //  { weekdays } contains { 3rd, 4th, 5th }
-  // but this requires additional context to know whether those days in the given bounds are always weekdays.
-  // it's not a super common scenario, in fact I doubt it would ever come up, so we may never get to it,
-  // but I'd like to at least make an issue for it so I can think it through a little more.
-  //
-  // I'm thinking however that I may have made a mistake and that I should probably change the type of days to only
-  // so instead of this:
-  //
-  // type Days {
-  //   Weekdays
-  //   Weekends
-  //   SpecificDays(List(DayOfWeek))
-  //   OrdinalDays(List(Ordinal))
-  // }
-  //
-  // we have this:
-  //
-  // type Days {
-  //   SpecificDays(List(DayOfWeek))
-  //   OrdinalDays(List(Ordinal))
-  // }
-  //
-  // and we always treat `Weekdays` and `Weekends` as sugar
-
-  todo
-}
-// type DayOfWeek = Mon | Tue | Wed | Thu | Fri | Sat | Sun
-
-// type Ordinal {
-//   DayOfMonth(Int)
-//   Last
-//   NthWeekday(Position, DayOfWeek)
-// }
-
-// type Position = First | Second | Third | Fourth | Fifth | LastPos
-
-// type Timing {
-//   At(times: List(Time))
-//   TimeRange(from: Time, to: Time)
-// }
-
-// type Bounds {
-//   Starting(BoundPoint)
-//   Between(from: BoundPoint, to: BoundPoint)
-// }
-
-// type Exclusion {
-//   ExceptDays(Days)
-//   ExceptTime(Timing)
-//   ExceptBounds(Bounds)
-// }
