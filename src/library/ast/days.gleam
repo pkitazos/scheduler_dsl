@@ -63,15 +63,11 @@ pub type Overlap(a) {
 /// Assumes all inner lists have already been de-duplicated upstream.
 pub fn overlap_with(a: ast.Days, b: ast.Days) -> Result(Overlap(ast.Days), Nil) {
   use d1 <- result.try(case a {
-    ast.Weekdays -> Ok(weekdays())
-    ast.Weekends -> Ok(weekend())
     ast.SpecificDays(days) -> Ok(days)
     ast.OrdinalDays(_) -> Error(Nil)
   })
 
   use d2 <- result.try(case b {
-    ast.Weekdays -> Ok(weekdays())
-    ast.Weekends -> Ok(weekend())
     ast.SpecificDays(days) -> Ok(days)
     ast.OrdinalDays(_) -> Error(Nil)
   })

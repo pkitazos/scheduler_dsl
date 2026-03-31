@@ -39,8 +39,6 @@ pub type Time {
 
 /// "on monday", "on weekdays", "on the 1st", etc.
 pub type Days {
-  Weekdays
-  Weekends
   SpecificDays(List(DayOfWeek))
   OrdinalDays(List(Ordinal))
 }

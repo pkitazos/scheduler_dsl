@@ -1,6 +1,7 @@
 import gleam/option.{None, Some}
 import gleeunit/should
 import library/ast
+import library/ast/days
 import library/validator
 
 // --- Helpers
@@ -395,12 +396,12 @@ pub fn between_invalid_bounds_asymmetry_none_some_test() {
 // --- Days: Weekdays / Weekends
 
 pub fn weekdays_is_valid_test() {
-  let s = with_days(ast.Weekdays)
+  let s = with_days(ast.SpecificDays(days.weekdays()))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
 pub fn weekends_is_valid_test() {
-  let s = with_days(ast.Weekends)
+  let s = with_days(ast.SpecificDays(days.weekend()))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
@@ -624,12 +625,12 @@ pub fn except_time_invalid_time_in_at_test() {
 // --- Exclusions: ExceptDays
 
 pub fn except_days_weekdays_test() {
-  let s = with_exclusions([ast.ExceptDays(ast.Weekdays)])
+  let s = with_exclusions([ast.ExceptDays(ast.SpecificDays(days.weekdays()))])
   validator.validate(s) |> should.equal(Ok(s))
 }
 
 pub fn except_days_weekends_test() {
-  let s = with_exclusions([ast.ExceptDays(ast.Weekends)])
+  let s = with_exclusions([ast.ExceptDays(ast.SpecificDays(days.weekend()))])
   validator.validate(s) |> should.equal(Ok(s))
 }
 
@@ -763,13 +764,16 @@ pub fn empty_exclusions_list_is_invalid_test() {
 // --- Exclusions: Duplicates
 
 pub fn duplicate_except_days_is_invalid_test() {
-  let exclusions = [ast.ExceptDays(ast.Weekdays), ast.ExceptDays(ast.Weekdays)]
+  let exclusions = [
+    ast.ExceptDays(ast.SpecificDays(days.weekdays())),
+    ast.ExceptDays(ast.SpecificDays(days.weekdays())),
+  ]
   with_exclusions(exclusions)
   |> validator.validate
   |> should.equal(
     Error(
       validator.InvalidExclusions("duplicate exclusions", [
-        ast.ExceptDays(ast.Weekdays),
+        ast.ExceptDays(ast.SpecificDays(days.weekdays())),
       ]),
     ),
   )
@@ -807,14 +811,17 @@ pub fn duplicate_except_bounds_is_invalid_test() {
 
 pub fn different_exclusions_is_valid_test() {
   let s =
-    with_exclusions([ast.ExceptDays(ast.Weekdays), ast.ExceptDays(ast.Weekends)])
+    with_exclusions([
+      ast.ExceptDays(ast.SpecificDays(days.weekdays())),
+      ast.ExceptDays(ast.SpecificDays(days.weekend())),
+    ])
   validator.validate(s) |> should.equal(Ok(s))
 }
 
 pub fn different_exclusion_types_is_valid_test() {
   let s =
     with_exclusions([
-      ast.ExceptDays(ast.Weekdays),
+      ast.ExceptDays(ast.SpecificDays(days.weekdays())),
       ast.ExceptTime(ast.At([ast.Time(9, 0)])),
     ])
   validator.validate(s) |> should.equal(Ok(s))
@@ -898,7 +905,7 @@ pub fn partial_overlap_not_subset_is_valid_test() {
 pub fn multiple_distinct_exclusions_test() {
   let s =
     with_exclusions([
-      ast.ExceptDays(ast.Weekends),
+      ast.ExceptDays(ast.SpecificDays(days.weekend())),
       ast.ExceptTime(ast.TimeRange(ast.Time(22, 0), ast.Time(6, 0))),
     ])
   validator.validate(s) |> should.equal(Ok(s))
@@ -907,7 +914,7 @@ pub fn multiple_distinct_exclusions_test() {
 pub fn three_distinct_exclusions_test() {
   let s =
     with_exclusions([
-      ast.ExceptDays(ast.Weekends),
+      ast.ExceptDays(ast.SpecificDays(days.weekend())),
       ast.ExceptTime(ast.At([ast.Time(12, 0)])),
       ast.ExceptBounds(ast.Starting(ast.BoundPoint(ast.Date(2025, 6, 1), None))),
     ])

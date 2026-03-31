@@ -1,6 +1,7 @@
 import gleam/option.{None, Some}
 import gleeunit/should
 import library/ast
+import library/ast/days
 import library/lexer
 import library/parser
 
@@ -266,13 +267,17 @@ pub fn time_clause_from_to_no_end_time_error_test() {
 pub fn on_clause_day_group_weekdays_test() {
   once("on weekdays")
   |> parse()
-  |> should.equal(Ok(ast.Schedule(..schedule(), days: Some(ast.Weekdays))))
+  |> should.equal(Ok(
+    ast.Schedule(..schedule(), days: Some(ast.SpecificDays(days.weekdays()))),
+  ))
 }
 
 pub fn on_clause_day_group_weekends_test() {
   once("on weekends")
   |> parse()
-  |> should.equal(Ok(ast.Schedule(..schedule(), days: Some(ast.Weekends))))
+  |> should.equal(Ok(
+    ast.Schedule(..schedule(), days: Some(ast.SpecificDays(days.weekend()))),
+  ))
 }
 
 pub fn on_clause_single_day_test() {
@@ -617,7 +622,10 @@ pub fn exclusion_except_on_clause_group_test() {
   once("except on weekends")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), exclusions: Some([ast.ExceptDays(ast.Weekends)])),
+    ast.Schedule(
+      ..schedule(),
+      exclusions: Some([ast.ExceptDays(ast.SpecificDays(days.weekend()))]),
+    ),
   ))
 }
 
@@ -720,7 +728,7 @@ pub fn exclusion_multiple_test() {
     ast.Schedule(
       ..schedule(),
       exclusions: Some([
-        ast.ExceptDays(ast.Weekends),
+        ast.ExceptDays(ast.SpecificDays(days.weekend())),
         ast.ExceptTime(ast.TimeRange(from: ast.Time(22, 0), to: ast.Time(6, 0))),
       ]),
     ),
@@ -734,7 +742,7 @@ pub fn exclusion_multiple_three_test() {
     ast.Schedule(
       ..schedule(),
       exclusions: Some([
-        ast.ExceptDays(ast.Weekends),
+        ast.ExceptDays(ast.SpecificDays(days.weekend())),
         ast.ExceptTime(ast.TimeRange(from: ast.Time(22, 0), to: ast.Time(6, 0))),
         ast.ExceptDays(ast.OrdinalDays([ast.DayOfMonth(1)])),
       ]),
@@ -759,7 +767,7 @@ pub fn full_schedule_freq_and_days_test() {
     Ok(ast.Schedule(
       frequency: ast.Every(5, ast.Minutes),
       timing: None,
-      days: Some(ast.Weekdays),
+      days: Some(ast.SpecificDays(days.weekdays())),
       bounds: None,
       exclusions: None,
     )),
@@ -772,7 +780,7 @@ pub fn full_schedule_freq_timing_days_test() {
     Ok(ast.Schedule(
       frequency: ast.Daily,
       timing: Some(ast.At([ast.Time(9, 0)])),
-      days: Some(ast.Weekdays),
+      days: Some(ast.SpecificDays(days.weekdays())),
       bounds: None,
       exclusions: None,
     )),
@@ -800,7 +808,7 @@ pub fn full_schedule_freq_days_exclusion_test() {
     Ok(ast.Schedule(
       frequency: ast.Every(30, ast.Minutes),
       timing: None,
-      days: Some(ast.Weekdays),
+      days: Some(ast.SpecificDays(days.weekdays())),
       bounds: None,
       exclusions: Some([ast.ExceptDays(ast.SpecificDays([ast.Fri]))]),
     )),
@@ -813,7 +821,7 @@ pub fn full_schedule_all_clauses_test() {
     Ok(ast.Schedule(
       frequency: ast.Daily,
       timing: Some(ast.At([ast.Time(9, 0)])),
-      days: Some(ast.Weekdays),
+      days: Some(ast.SpecificDays(days.weekdays())),
       bounds: Some(ast.Between(
         from: ast.BoundPoint(date: ast.Date(2024, 1, 1), time: None),
         to: ast.BoundPoint(date: ast.Date(2024, 12, 31), time: None),
@@ -829,7 +837,7 @@ pub fn full_schedule_hourly_from_to_on_weekdays_test() {
     Ok(ast.Schedule(
       frequency: ast.Hourly,
       timing: Some(ast.TimeRange(from: ast.Time(9, 0), to: ast.Time(17, 0))),
-      days: Some(ast.Weekdays),
+      days: Some(ast.SpecificDays(days.weekdays())),
       bounds: None,
       exclusions: None,
     )),

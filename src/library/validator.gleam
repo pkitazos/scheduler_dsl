@@ -79,10 +79,6 @@ fn validate_timing(timing: ast.Timing) -> Result(ast.Timing, ValidatorError) {
 
 fn validate_days(days: ast.Days) -> Result(ast.Days, ValidatorError) {
   case days {
-    ast.Weekdays -> Ok(ast.Weekdays)
-
-    ast.Weekends -> Ok(ast.Weekends)
-
     ast.SpecificDays([]) -> Error(InvalidDaysOfWeek("empty list", []))
 
     ast.SpecificDays(days_of_week) -> {
