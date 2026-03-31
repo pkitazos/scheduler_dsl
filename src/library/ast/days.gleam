@@ -1,5 +1,6 @@
 import gleam/list
 import gleam/order
+import gleam/result
 import library/ast
 import library/utils.{intersection}
 
@@ -44,30 +45,47 @@ pub fn sort_days_of_week(a: ast.DayOfWeek, b: ast.DayOfWeek) -> order.Order {
 }
 
 pub type Overlap(a) {
-  Subset(List(a), List(a))
-  Intersection(List(a), List(a), List(a))
+  Subset(a, a)
+  Intersection(a, a, a)
   Disjoint
-  Indeterminate
 }
 
-pub fn overlap_with(
-  d1: List(ast.DayOfWeek),
-  d2: List(ast.DayOfWeek),
-) -> Overlap(ast.DayOfWeek) {
-  // io.println("d1:\n" <> string.inspect(d1))
-  // io.println("\nd2:\n" <> string.inspect(d2))
-  case intersection(d1, d2) {
-    [] -> Disjoint
-    overlap -> {
-      // io.println("overlappin:\n" <> string.inspect(overlap))
+/// Compares two `Days` values and determines their set-theoretic relationship.
+///
+/// Returns `Ok(Subset(a, b))` when `a` is a proper subset of `b`,
+/// `Ok(Intersection(a, b, shared))` when they partially overlap,
+/// `Ok(Disjoint)` when they share nothing, or `Error(Nil)` when
+/// either operand is `OrdinalDays` (requires runtime context to compare).
+///
+/// The original `ast.Days` values are preserved in the result so that
+/// error messages can refer to what the user actually wrote.
+///
+/// Assumes all inner lists have already been de-duplicated upstream.
+pub fn overlap_with(a: ast.Days, b: ast.Days) -> Result(Overlap(ast.Days), Nil) {
+  use d1 <- result.try(case a {
+    ast.Weekdays -> Ok(weekdays())
+    ast.Weekends -> Ok(weekend())
+    ast.SpecificDays(days) -> Ok(days)
+    ast.OrdinalDays(_) -> Error(Nil)
+  })
 
+  use d2 <- result.try(case b {
+    ast.Weekdays -> Ok(weekdays())
+    ast.Weekends -> Ok(weekend())
+    ast.SpecificDays(days) -> Ok(days)
+    ast.OrdinalDays(_) -> Error(Nil)
+  })
+
+  case intersection(d1, d2) {
+    [] -> Ok(Disjoint)
+    overlap -> {
       // if there is overlap
       // and the overlap is the entire length of d1,
-      // then it is fully contained
-      // otherwise it is partially contained
+      // then it is a strict subset
+      // otherwise they just have a non-empty intersection set
       case list.length(overlap) == list.length(d1) {
-        False -> Intersection(d1, d2, overlap)
-        True -> Subset(d1, d2)
+        False -> Ok(Intersection(a, b, ast.SpecificDays(overlap)))
+        True -> Ok(Subset(a, b))
       }
     }
   }

@@ -22,7 +22,7 @@
 
 ## exclusions
 - [x] reject duplicate exclusions (structural equality)
-- [ ] reject exclusion that is a strict subset of another exclusion
+- [/] reject exclusion that is a strict subset of another exclusion
 - [ ] `ExceptTime`: all timing rules carry forward
 - [ ] `ExceptDays`: all days rules carry forward
 - [ ] `ExceptBounds`: all bounds rules carry forward
