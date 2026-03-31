@@ -354,13 +354,50 @@ fn handle_specific_days_simple_overlap(
   // Related: if the minimal set covers all 7 days, that's equivalent to
   // "every day" which might warrant a cross-clause warning.
 }
-// type Days {
-//   Weekdays
-//   Weekends
-//   SpecificDays(List(DayOfWeek))
-//   OrdinalDays(List(Ordinal))
-// }
 
+fn handle_oridnal_days_simple_overlap(
+  days: List(ast.Days),
+) -> Result(List(ast.Days), ValidatorError) {
+  // todo: skip over non `ast.OrdinalDays`
+  // for the remaining `ast.OrdinalDays` we need to check
+  // if any given list of days fully contains some other list of days
+  //
+  // so for example:
+  //  { 1st, 2nd, 3rd, 4th } fully contains { 2nd, 4th }
+  // but:
+  //  { 1st, 2nd, 3rd, 4th } only partially contains { 4th, 5th, 6th }
+  //
+  // the mechanics are very similar to the previous function,
+  // we're checking for overlap between different sets of the same kind of days
+  // hence the `_simple` suffix
+  //
+  // there may or may not later be a separate check which checks whether:
+  //  { weekdays } contains { 3rd, 4th, 5th }
+  // but this requires additional context to know whether those days in the given bounds are always weekdays.
+  // it's not a super common scenario, in fact I doubt it would ever come up, so we may never get to it,
+  // but I'd like to at least make an issue for it so I can think it through a little more.
+  //
+  // I'm thinking however that I may have made a mistake and that I should probably change the type of days to only
+  // so instead of this:
+  //
+  // type Days {
+  //   Weekdays
+  //   Weekends
+  //   SpecificDays(List(DayOfWeek))
+  //   OrdinalDays(List(Ordinal))
+  // }
+  //
+  // we have this:
+  //
+  // type Days {
+  //   SpecificDays(List(DayOfWeek))
+  //   OrdinalDays(List(Ordinal))
+  // }
+  //
+  // and we always treat `Weekdays` and `Weekends` as sugar
+
+  todo
+}
 // type DayOfWeek = Mon | Tue | Wed | Thu | Fri | Sat | Sun
 
 // type Ordinal {
