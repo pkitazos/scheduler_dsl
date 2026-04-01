@@ -9,7 +9,7 @@ import library/parser
 
 fn parse(input: String) -> Result(ast.Schedule, parser.ParseError) {
   let assert Ok(tokens) = lexer.lex(input)
-  parser.parse(tokens)
+  parser.parse_recurring(tokens)
 }
 
 fn schedule() -> ast.Schedule {

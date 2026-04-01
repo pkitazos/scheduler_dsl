@@ -2,7 +2,8 @@ import gleam/option.{type Option}
 
 /// complete schedule expression
 pub type Schedule {
-  Schedule(
+  OneOff(date: Date, time: Time)
+  Recurring(
     frequency: Frequency,
     timing: Option(Timing),
     days: Option(Days),
@@ -13,13 +14,7 @@ pub type Schedule {
 
 /// "every 5 minutes" or "hourly"
 pub type Frequency {
-  Once
   Every(amount: Int, unit: TimeUnit)
-  Hourly
-  Daily
-  Weekly
-  Monthly
-  Annually
 }
 
 pub type TimeUnit {
@@ -40,7 +35,8 @@ pub type Time {
 /// "on monday", "on weekdays", "on the 1st", etc.
 pub type Days {
   SpecificDays(List(DayOfWeek))
-  OrdinalDays(List(Ordinal))
+  BareOrdinalDays(List(Ordinal))
+  QualifiedOrdinalDays(List(NthWeekday))
 }
 
 pub type DayOfWeek {
@@ -55,7 +51,10 @@ pub type DayOfWeek {
 
 pub type Ordinal {
   DayOfMonth(Int)
-  Last
+  LastDay
+}
+
+pub type NthWeekday {
   NthWeekday(Position, DayOfWeek)
 }
 
@@ -65,7 +64,7 @@ pub type Position {
   Third
   Fourth
   Fifth
-  LastPos
+  Last
 }
 
 pub type Timing {

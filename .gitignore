@@ -7,8 +7,8 @@
 # Allow specific files and extensions
 !.gitignore
 !.github/**
-!src/**
-!test/**
+!src/**/*.gleam
+!test/**/*.gleam
 !gleam.toml
 !manifest.toml
 !README.md

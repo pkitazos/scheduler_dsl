@@ -3,8 +3,8 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
 import library/ast.{
-  type DayOfWeek, type Days, type Exclusion, type Frequency, type Ordinal,
-  type Position, type Schedule, type Time, type Timing,
+  type DayOfWeek, type Days, type Exclusion, type Frequency, type NthWeekday,
+  type Ordinal, type Position, type Schedule, type Time, type Timing,
 }
 import library/ast/days
 
@@ -21,22 +21,60 @@ pub type ParseError {
 }
 
 pub fn parse(tokens: List(Token)) -> Result(Schedule, ParseError) {
-  use #(freq, rest) <- result.try(parse_frequency(tokens))
-  use #(timing, rest) <- result.try(parse_timing(rest))
-  use #(days, rest) <- result.try(parse_days(rest))
-  use #(bounds, rest) <- result.try(parse_bounds(rest))
-  use #(exclusions, rest) <- result.try(parse_exclusions(rest))
+  case tokens {
+    [] -> Error(InvalidSchedule("empty"))
 
+    [token.Once, ..] -> {
+      use #(schedule, rest) <- result.try(parse_one_off(tokens))
+      use _ <- result.try(handle_rest(rest))
+      Ok(schedule)
+    }
+
+    tokens -> {
+      use #(schedule, rest) <- result.try(parse_recurring(tokens))
+      use _ <- result.try(handle_rest(rest))
+      Ok(schedule)
+    }
+  }
+}
+
+fn parse_one_off(
+  tokens: List(Token),
+) -> Result(#(Schedule, List(Token)), ParseError) {
+  let assert [token.Once, ..rest] = tokens as "Unreachable"
   case rest {
-    [] ->
-      Ok(ast.Schedule(
-        frequency: freq,
-        timing: timing,
-        days: days,
-        bounds: bounds,
-        exclusions: exclusions,
+    [] -> Error(InvalidSchedule("expected date and time after `once`"))
+
+    [
+      token.On,
+      token.DateLiteral(year, month, day),
+      token.At,
+      token.TimeLiteral(hour, minute),
+      ..rest
+    ] ->
+      Ok(#(
+        ast.OneOff(
+          date: ast.Date(year, month, day),
+          time: ast.Time(hour, minute),
+        ),
+        rest,
       ))
 
+    [token.On, token.DateLiteral(_, _, _), token.At, ..] ->
+      Error(InvalidSchedule("expected time literal HH:mm after `at`"))
+
+    [token.On, token.DateLiteral(_, _, _), ..] ->
+      Error(InvalidSchedule("expected `at` and time after date"))
+
+    [token.On, ..] -> Error(InvalidSchedule("expected date after `on`"))
+
+    _ -> Error(InvalidSchedule("expected `on` after `once`"))
+  }
+}
+
+fn handle_rest(tokens: List(Token)) -> Result(Nil, ParseError) {
+  case tokens {
+    [] -> Ok(Nil)
     rest ->
       Error(InvalidSchedule(
         "unexpected tokens after schedule: `"
@@ -46,16 +84,36 @@ pub fn parse(tokens: List(Token)) -> Result(Schedule, ParseError) {
   }
 }
 
+fn parse_recurring(
+  tokens: List(Token),
+) -> Result(#(Schedule, List(Token)), ParseError) {
+  use #(freq, rest) <- result.try(parse_frequency(tokens))
+  use #(timing, rest) <- result.try(parse_timing(rest))
+  use #(days, rest) <- result.try(parse_days(rest))
+  use #(bounds, rest) <- result.try(parse_bounds(rest))
+  use #(exclusions, rest) <- result.try(parse_exclusions(rest))
+
+  Ok(#(
+    ast.Recurring(
+      frequency: freq,
+      timing: timing,
+      days: days,
+      bounds: bounds,
+      exclusions: exclusions,
+    ),
+    rest,
+  ))
+}
+
 fn parse_frequency(
   tokens: List(Token),
 ) -> Result(#(Frequency, List(Token)), ParseError) {
   case tokens {
-    [token.Once, ..rest] -> Ok(#(ast.Once, rest))
-    [token.Hourly, ..rest] -> Ok(#(ast.Hourly, rest))
-    [token.Daily, ..rest] -> Ok(#(ast.Daily, rest))
-    [token.Weekly, ..rest] -> Ok(#(ast.Weekly, rest))
-    [token.Monthly, ..rest] -> Ok(#(ast.Monthly, rest))
-    [token.Annually, ..rest] -> Ok(#(ast.Annually, rest))
+    [token.Hourly, ..rest] -> Ok(#(ast.Every(1, ast.Hours), rest))
+    [token.Daily, ..rest] -> Ok(#(ast.Every(1, ast.Days), rest))
+    [token.Weekly, ..rest] -> Ok(#(ast.Every(1, ast.Weeks), rest))
+    [token.Monthly, ..rest] -> Ok(#(ast.Every(1, ast.Months), rest))
+    [token.Annually, ..rest] -> Ok(#(ast.Every(1, ast.Years), rest))
 
     [token.Every, token.Second, ..rest] ->
       Ok(#(ast.Every(1, ast.Seconds), rest))
@@ -196,41 +254,46 @@ fn parse_days(
       Ok(#(Some(ast.SpecificDays(days.weekend())), rest))
 
     [token.On, token.The, token.Ordinal(n), ..rest] -> {
-      use #(rest_days, rest2) <- result.try(parse_ord_day_list(rest))
-      Ok(#(Some(ast.OrdinalDays([ast.DayOfMonth(n), ..rest_days])), rest2))
+      use #(rest_days, rest2) <- result.try(parse_bare_ord_day_list(rest))
+      Ok(#(Some(ast.BareOrdinalDays([ast.DayOfMonth(n), ..rest_days])), rest2))
     }
 
     [token.On, token.The, token.Last, day_token, ..rest] -> {
       case token_to_weekday(day_token) {
         Ok(day) -> {
-          use #(rest_days, rest2) <- result.try(parse_ord_day_list(rest))
+          use #(rest_days, rest2) <- result.try(parse_qualified_ord_day_list(
+            rest,
+          ))
           Ok(#(
             Some(
-              ast.OrdinalDays([ast.NthWeekday(ast.LastPos, day), ..rest_days]),
+              ast.QualifiedOrdinalDays([
+                ast.NthWeekday(ast.Last, day),
+                ..rest_days
+              ]),
             ),
             rest2,
           ))
         }
         Error(_) -> {
           use #(rest_days, rest2) <- result.try(
-            parse_ord_day_list([day_token, ..rest]),
+            parse_bare_ord_day_list([day_token, ..rest]),
           )
-          Ok(#(Some(ast.OrdinalDays([ast.Last, ..rest_days])), rest2))
+          Ok(#(Some(ast.BareOrdinalDays([ast.LastDay, ..rest_days])), rest2))
         }
       }
     }
 
     [token.On, token.The, token.Last, ..rest] -> {
-      use #(rest_days, rest2) <- result.try(parse_ord_day_list(rest))
-      Ok(#(Some(ast.OrdinalDays([ast.Last, ..rest_days])), rest2))
+      use #(rest_days, rest2) <- result.try(parse_bare_ord_day_list(rest))
+      Ok(#(Some(ast.BareOrdinalDays([ast.LastDay, ..rest_days])), rest2))
     }
 
     [token.On, token.The, position_token, day_token, ..rest] -> {
       use day <- result.try(token_to_weekday(day_token))
       use pos <- result.try(token_to_ordinal_position(position_token))
-      use #(rest_days, rest2) <- result.try(parse_ord_day_list(rest))
+      use #(rest_days, rest2) <- result.try(parse_qualified_ord_day_list(rest))
       Ok(#(
-        Some(ast.OrdinalDays([ast.NthWeekday(pos, day), ..rest_days])),
+        Some(ast.QualifiedOrdinalDays([ast.NthWeekday(pos, day), ..rest_days])),
         rest2,
       ))
     }
@@ -245,36 +308,48 @@ fn parse_days(
   }
 }
 
-fn parse_ord_day_list(
+fn parse_bare_ord_day_list(
   tokens: List(Token),
 ) -> Result(#(List(Ordinal), List(Token)), ParseError) {
   case tokens {
     [token.Comma, token.Ordinal(n), ..rest] -> {
-      use #(more, rest2) <- result.try(parse_ord_day_list(rest))
+      use #(more, rest2) <- result.try(parse_bare_ord_day_list(rest))
       Ok(#([ast.DayOfMonth(n), ..more], rest2))
     }
 
-    [token.Comma, position_token, day_token, ..rest] -> {
-      use pos <- result.try(token_to_ordinal_position(position_token))
-      use day <- result.try(token_to_weekday(day_token))
-      use #(more, rest2) <- result.try(parse_ord_day_list(rest))
-      Ok(#([ast.NthWeekday(pos, day), ..more], rest2))
-    }
-
     [token.Comma, token.Last, ..rest] -> {
-      use #(more, rest2) <- result.try(parse_ord_day_list(rest))
-      Ok(#([ast.Last, ..more], rest2))
+      use #(more, rest2) <- result.try(parse_bare_ord_day_list(rest))
+      Ok(#([ast.LastDay, ..more], rest2))
     }
 
     [token.And, token.Ordinal(n), ..rest] -> Ok(#([ast.DayOfMonth(n)], rest))
+
+    [token.And, token.Last, ..rest] -> Ok(#([ast.LastDay], rest))
+
+    [token.Comma, ..] -> Error(InvalidDays("expected ordinal after comma"))
+
+    [token.And, ..] -> Error(InvalidDays("expected ordinal after `and`"))
+
+    _ -> Ok(#([], tokens))
+  }
+}
+
+fn parse_qualified_ord_day_list(
+  tokens: List(Token),
+) -> Result(#(List(NthWeekday), List(Token)), ParseError) {
+  case tokens {
+    [token.Comma, position_token, day_token, ..rest] -> {
+      use pos <- result.try(token_to_ordinal_position(position_token))
+      use day <- result.try(token_to_weekday(day_token))
+      use #(more, rest2) <- result.try(parse_qualified_ord_day_list(rest))
+      Ok(#([ast.NthWeekday(pos, day), ..more], rest2))
+    }
 
     [token.And, position_token, day_token, ..rest] -> {
       use pos <- result.try(token_to_ordinal_position(position_token))
       use day <- result.try(token_to_weekday(day_token))
       Ok(#([ast.NthWeekday(pos, day)], rest))
     }
-
-    [token.And, token.Last, ..rest] -> Ok(#([ast.Last], rest))
 
     [token.Comma, ..] -> Error(InvalidDays("expected ordinal after comma"))
     [token.And, ..] -> Error(InvalidDays("expected ordinal after `and`"))
@@ -326,7 +401,7 @@ fn token_to_ordinal_position(tok: Token) -> Result(Position, ParseError) {
     token.Third -> Ok(ast.Third)
     token.Fourth -> Ok(ast.Fourth)
     token.Fifth -> Ok(ast.Fifth)
-    token.Last -> Ok(ast.LastPos)
+    token.Last -> Ok(ast.Last)
     _ -> Error(InvalidDays("expected position"))
   }
 }

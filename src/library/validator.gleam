@@ -91,7 +91,7 @@ fn validate_days(days: ast.Days) -> Result(ast.Days, ValidatorError) {
       Ok(days)
     }
 
-    ast.OrdinalDays(ordinals) -> {
+    ast.BareOrdinalDays(ordinals) -> {
       use _ordinals <- result.try(
         no_duplicates(ordinals, fn(dups) {
           InvalidOrdinalDays("duplicate ordinal days", dups)
@@ -251,7 +251,6 @@ fn validate_time_result(time: ast.Time) -> Result(ast.Time, ValidatorError) {
   }
 }
 
-// - [ ] reject exclusion that is a strict subset of another exclusion
 pub fn validate_exclusions(
   exclusions: List(ast.Exclusion),
 ) -> Result(List(ast.Exclusion), ValidatorError) {
