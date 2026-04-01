@@ -6,8 +6,8 @@ import library/validator
 
 // --- Helpers
 
-fn schedule(frequency: ast.Frequency) -> ast.Schedule {
-  ast.Schedule(
+fn recurring(frequency: ast.Frequency) -> ast.Schedule {
+  ast.Recurring(
     frequency: frequency,
     timing: None,
     days: None,
@@ -17,25 +17,54 @@ fn schedule(frequency: ast.Frequency) -> ast.Schedule {
 }
 
 fn with_timing(timing: ast.Timing) -> ast.Schedule {
-  ast.Schedule(..schedule(ast.Once), timing: Some(timing))
+  let assert ast.Recurring(..) as base = recurring(ast.Every(1, ast.Days))
+  ast.Recurring(..base, timing: Some(timing))
 }
 
 fn with_bounds(bounds: ast.Bounds) -> ast.Schedule {
-  ast.Schedule(..schedule(ast.Once), bounds: Some(bounds))
+  let assert ast.Recurring(..) as base = recurring(ast.Every(1, ast.Days))
+  ast.Recurring(..base, bounds: Some(bounds))
 }
 
 fn with_days(days: ast.Days) -> ast.Schedule {
-  ast.Schedule(..schedule(ast.Once), days: Some(days))
+  let assert ast.Recurring(..) as base = recurring(ast.Every(1, ast.Days))
+  ast.Recurring(..base, days: Some(days))
 }
 
 fn with_exclusions(exclusions: List(ast.Exclusion)) -> ast.Schedule {
-  ast.Schedule(..schedule(ast.Once), exclusions: Some(exclusions))
+  let assert ast.Recurring(..) as base = recurring(ast.Every(1, ast.Days))
+  ast.Recurring(..base, exclusions: Some(exclusions))
 }
+
+// --- One-Off
+
+pub fn once_valid_test() {
+  let s = ast.OneOff(ast.Date(2026, 1, 1), ast.Time(9, 0))
+  validator.validate(s) |> should.equal(Ok(s))
+}
+
+pub fn once_date_invalid_test() {
+  let date = ast.Date(2026, 2, 30)
+
+  ast.OneOff(date, ast.Time(9, 0))
+  |> validator.validate
+  |> should.equal(Error(validator.InvalidDate("invalid date", date)))
+}
+
+pub fn once_time_invalid_test() {
+  let time = ast.Time(9, 0)
+
+  ast.OneOff(ast.Date(2026, 1, 1), time)
+  |> validator.validate
+  |> should.equal(Error(validator.InvalidTime("invalid time", time)))
+}
+
+// --- Recurring
 
 // --- Frequency
 
 pub fn negative_frequency_is_invalid_test() {
-  schedule(ast.Every(-1, ast.Minutes))
+  recurring(ast.Every(-1, ast.Minutes))
   |> validator.validate
   |> should.equal(
     Error(validator.InvalidFrequency(
@@ -46,7 +75,7 @@ pub fn negative_frequency_is_invalid_test() {
 }
 
 pub fn every_0_seconds_is_invalid_test() {
-  schedule(ast.Every(0, ast.Seconds))
+  recurring(ast.Every(0, ast.Seconds))
   |> validator.validate
   |> should.equal(
     Error(validator.InvalidFrequency(
@@ -57,7 +86,7 @@ pub fn every_0_seconds_is_invalid_test() {
 }
 
 pub fn every_0_minutes_is_invalid_test() {
-  schedule(ast.Every(0, ast.Minutes))
+  recurring(ast.Every(0, ast.Minutes))
   |> validator.validate
   |> should.equal(
     Error(validator.InvalidFrequency(
@@ -68,42 +97,37 @@ pub fn every_0_minutes_is_invalid_test() {
 }
 
 pub fn every_1_second_is_valid_test() {
-  let s = schedule(ast.Every(1, ast.Seconds))
+  let s = recurring(ast.Every(1, ast.Seconds))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
 pub fn every_5_minutes_is_valid_test() {
-  let s = schedule(ast.Every(5, ast.Minutes))
+  let s = recurring(ast.Every(5, ast.Minutes))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
-pub fn once_is_valid_test() {
-  let s = schedule(ast.Once)
+pub fn every_hour_is_valid_test() {
+  let s = recurring(ast.Every(1, ast.Hours))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
-pub fn hourly_is_valid_test() {
-  let s = schedule(ast.Hourly)
+pub fn every_day_is_valid_test() {
+  let s = recurring(ast.Every(1, ast.Days))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
-pub fn daily_is_valid_test() {
-  let s = schedule(ast.Daily)
+pub fn every_week_is_valid_test() {
+  let s = recurring(ast.Every(1, ast.Weeks))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
-pub fn weekly_is_valid_test() {
-  let s = schedule(ast.Weekly)
+pub fn every_month_is_valid_test() {
+  let s = recurring(ast.Every(1, ast.Months))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
-pub fn monthly_is_valid_test() {
-  let s = schedule(ast.Monthly)
-  validator.validate(s) |> should.equal(Ok(s))
-}
-
-pub fn annually_is_valid_test() {
-  let s = schedule(ast.Annually)
+pub fn every_year_is_valid_test() {
+  let s = recurring(ast.Every(1, ast.Years))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
@@ -434,45 +458,47 @@ pub fn specific_days_duplicate_is_invalid_test() {
 // --- Days: OrdinalDays
 
 pub fn ordinal_days_empty_list_is_invalid_test() {
-  with_days(ast.OrdinalDays([]))
+  with_days(ast.BareOrdinalDays([]))
   |> validator.validate
   |> should.equal(Error(validator.InvalidOrdinalDays("empty list", [])))
 }
 
 pub fn ordinal_days_single_day_of_month_test() {
-  let s = with_days(ast.OrdinalDays([ast.DayOfMonth(15)]))
+  let s = with_days(ast.BareOrdinalDays([ast.DayOfMonth(15)]))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
 pub fn ordinal_days_multiple_days_of_month_test() {
-  let s = with_days(ast.OrdinalDays([ast.DayOfMonth(1), ast.DayOfMonth(15)]))
+  let s =
+    with_days(ast.BareOrdinalDays([ast.DayOfMonth(1), ast.DayOfMonth(15)]))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
 pub fn ordinal_days_last_test() {
-  let s = with_days(ast.OrdinalDays([ast.Last]))
+  let s = with_days(ast.BareOrdinalDays([ast.LastDay]))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
 pub fn ordinal_days_day_of_month_and_last_mixed_test() {
-  let s = with_days(ast.OrdinalDays([ast.DayOfMonth(1), ast.Last]))
+  let s = with_days(ast.BareOrdinalDays([ast.DayOfMonth(1), ast.LastDay]))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
 pub fn ordinal_days_last_and_day_of_month_mixed_test() {
-  let s = with_days(ast.OrdinalDays([ast.Last, ast.DayOfMonth(15)]))
+  let s = with_days(ast.BareOrdinalDays([ast.LastDay, ast.DayOfMonth(15)]))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
 pub fn ordinal_days_nth_weekday_test() {
-  let s = with_days(ast.OrdinalDays([ast.NthWeekday(ast.First, ast.Mon)]))
+  let s =
+    with_days(ast.QualifiedOrdinalDays([ast.NthWeekday(ast.First, ast.Mon)]))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
 pub fn ordinal_days_multiple_nth_weekdays_test() {
   let s =
     with_days(
-      ast.OrdinalDays([
+      ast.QualifiedOrdinalDays([
         ast.NthWeekday(ast.First, ast.Mon),
         ast.NthWeekday(ast.Third, ast.Fri),
       ]),
@@ -480,16 +506,8 @@ pub fn ordinal_days_multiple_nth_weekdays_test() {
   validator.validate(s) |> should.equal(Ok(s))
 }
 
-pub fn ordinal_days_mixed_bare_and_qualified_is_valid_test() {
-  let s =
-    with_days(
-      ast.OrdinalDays([ast.DayOfMonth(1), ast.NthWeekday(ast.First, ast.Mon)]),
-    )
-  validator.validate(s) |> should.equal(Ok(s))
-}
-
 pub fn ordinal_days_duplicate_is_invalid_test() {
-  with_days(ast.OrdinalDays([ast.DayOfMonth(1), ast.DayOfMonth(1)]))
+  with_days(ast.BareOrdinalDays([ast.DayOfMonth(1), ast.DayOfMonth(1)]))
   |> validator.validate
   |> should.equal(
     Error(
@@ -502,7 +520,7 @@ pub fn ordinal_days_duplicate_is_invalid_test() {
 
 pub fn ordinal_days_duplicate_nth_weekday_is_invalid_test() {
   with_days(
-    ast.OrdinalDays([
+    ast.QualifiedOrdinalDays([
       ast.NthWeekday(ast.First, ast.Mon),
       ast.NthWeekday(ast.First, ast.Mon),
     ]),
@@ -510,7 +528,7 @@ pub fn ordinal_days_duplicate_nth_weekday_is_invalid_test() {
   |> validator.validate
   |> should.equal(
     Error(
-      validator.InvalidOrdinalDays("duplicate ordinal days", [
+      validator.InvalidQualifiedOrdinalDays("duplicate ordinal days", [
         ast.NthWeekday(ast.First, ast.Mon),
       ]),
     ),
@@ -518,15 +536,15 @@ pub fn ordinal_days_duplicate_nth_weekday_is_invalid_test() {
 }
 
 pub fn ordinal_days_duplicate_last_is_invalid_test() {
-  with_days(ast.OrdinalDays([ast.Last, ast.Last]))
+  with_days(ast.BareOrdinalDays([ast.LastDay, ast.LastDay]))
   |> validator.validate
   |> should.equal(
-    Error(validator.InvalidOrdinalDays("duplicate ordinal days", [ast.Last])),
+    Error(validator.InvalidOrdinalDays("duplicate ordinal days", [ast.LastDay])),
   )
 }
 
 pub fn ordinal_day_of_month_0_is_invalid_test() {
-  with_days(ast.OrdinalDays([ast.DayOfMonth(0)]))
+  with_days(ast.BareOrdinalDays([ast.DayOfMonth(0)]))
   |> validator.validate
   |> should.equal(
     Error(validator.InvalidDayOfMonth("invalid day of month", ast.DayOfMonth(0))),
@@ -534,7 +552,7 @@ pub fn ordinal_day_of_month_0_is_invalid_test() {
 }
 
 pub fn ordinal_day_of_month_32_is_invalid_test() {
-  with_days(ast.OrdinalDays([ast.DayOfMonth(32)]))
+  with_days(ast.BareOrdinalDays([ast.DayOfMonth(32)]))
   |> validator.validate
   |> should.equal(
     Error(validator.InvalidDayOfMonth(
@@ -545,12 +563,12 @@ pub fn ordinal_day_of_month_32_is_invalid_test() {
 }
 
 pub fn ordinal_day_of_month_1_is_valid_test() {
-  let s = with_days(ast.OrdinalDays([ast.DayOfMonth(1)]))
+  let s = with_days(ast.BareOrdinalDays([ast.DayOfMonth(1)]))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
 pub fn ordinal_day_of_month_31_is_valid_test() {
-  let s = with_days(ast.OrdinalDays([ast.DayOfMonth(31)]))
+  let s = with_days(ast.BareOrdinalDays([ast.DayOfMonth(31)]))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
@@ -656,18 +674,18 @@ pub fn except_days_duplicate_specific_days_is_invalid_test() {
 
 pub fn except_days_ordinal_valid_test() {
   let s =
-    with_exclusions([ast.ExceptDays(ast.OrdinalDays([ast.DayOfMonth(1)]))])
+    with_exclusions([ast.ExceptDays(ast.BareOrdinalDays([ast.DayOfMonth(1)]))])
   validator.validate(s) |> should.equal(Ok(s))
 }
 
 pub fn except_days_ordinal_empty_is_invalid_test() {
-  with_exclusions([ast.ExceptDays(ast.OrdinalDays([]))])
+  with_exclusions([ast.ExceptDays(ast.BareOrdinalDays([]))])
   |> validator.validate
   |> should.equal(Error(validator.InvalidOrdinalDays("empty list", [])))
 }
 
 pub fn except_days_ordinal_out_of_range_is_invalid_test() {
-  with_exclusions([ast.ExceptDays(ast.OrdinalDays([ast.DayOfMonth(32)]))])
+  with_exclusions([ast.ExceptDays(ast.BareOrdinalDays([ast.DayOfMonth(32)]))])
   |> validator.validate
   |> should.equal(
     Error(validator.InvalidDayOfMonth(
@@ -679,7 +697,7 @@ pub fn except_days_ordinal_out_of_range_is_invalid_test() {
 
 pub fn except_days_ordinal_duplicate_is_invalid_test() {
   with_exclusions([
-    ast.ExceptDays(ast.OrdinalDays([ast.DayOfMonth(1), ast.DayOfMonth(1)])),
+    ast.ExceptDays(ast.BareOrdinalDays([ast.DayOfMonth(1), ast.DayOfMonth(1)])),
   ])
   |> validator.validate
   |> should.equal(
@@ -855,8 +873,8 @@ pub fn redundant_at_times_subset_is_invalid_test() {
 
 pub fn redundant_ordinal_days_subset_is_invalid_test() {
   let exclusions = [
-    ast.ExceptDays(ast.OrdinalDays([ast.DayOfMonth(1)])),
-    ast.ExceptDays(ast.OrdinalDays([ast.DayOfMonth(1), ast.DayOfMonth(15)])),
+    ast.ExceptDays(ast.BareOrdinalDays([ast.DayOfMonth(1)])),
+    ast.ExceptDays(ast.BareOrdinalDays([ast.DayOfMonth(1), ast.DayOfMonth(15)])),
   ]
   with_exclusions(exclusions)
   |> validator.validate
@@ -867,9 +885,11 @@ pub fn redundant_ordinal_days_subset_is_invalid_test() {
 
 pub fn redundant_nth_weekday_subset_is_invalid_test() {
   let exclusions = [
-    ast.ExceptDays(ast.OrdinalDays([ast.NthWeekday(ast.First, ast.Mon)])),
     ast.ExceptDays(
-      ast.OrdinalDays([
+      ast.QualifiedOrdinalDays([ast.NthWeekday(ast.First, ast.Mon)]),
+    ),
+    ast.ExceptDays(
+      ast.QualifiedOrdinalDays([
         ast.NthWeekday(ast.First, ast.Mon),
         ast.NthWeekday(ast.Third, ast.Fri),
       ]),
