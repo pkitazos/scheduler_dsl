@@ -67,6 +67,11 @@ pub fn overlap_with(a: ast.Days, b: ast.Days) -> Result(Overlap(ast.Days), Nil) 
       |> overlap_fmap(ast.BareOrdinalDays)
       |> Ok()
     }
+    ast.QualifiedOrdinalDays(d1), ast.QualifiedOrdinalDays(d2) -> {
+      set_overlap(d1, d2)
+      |> overlap_fmap(ast.QualifiedOrdinalDays)
+      |> Ok()
+    }
     _, _ -> Error(Nil)
   }
 }
