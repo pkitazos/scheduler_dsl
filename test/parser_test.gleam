@@ -9,12 +9,12 @@ import library/parser
 
 fn parse(input: String) -> Result(ast.Schedule, parser.ParseError) {
   let assert Ok(tokens) = lexer.lex(input)
-  parser.parse_recurring(tokens)
+  parser.parse(tokens)
 }
 
-fn schedule() -> ast.Schedule {
-  ast.Schedule(
-    frequency: ast.Once,
+fn recurring() -> ast.Schedule {
+  ast.Recurring(
+    frequency: ast.Every(1, ast.Days),
     timing: None,
     days: None,
     bounds: None,
@@ -22,128 +22,257 @@ fn schedule() -> ast.Schedule {
   )
 }
 
-fn once(expr: String) -> String {
-  "once " <> expr
+fn daily(expr: String) -> String {
+  "daily " <> expr
 }
 
-// --- Frequency
+// ============================================================
+// OneOff: once on <date> at <time>
+// ============================================================
+
+pub fn one_off_happy_path_test() {
+  parse("once on 2024-01-15 at 09:30")
+  |> should.equal(
+    Ok(ast.OneOff(date: ast.Date(2024, 1, 15), time: ast.Time(9, 30))),
+  )
+}
+
+pub fn one_off_missing_everything_test() {
+  parse("once")
+  |> should.equal(
+    Error(parser.InvalidSchedule("expected date and time after `once`")),
+  )
+}
+
+pub fn one_off_missing_on_test() {
+  parse("once 2024-01-15 at 09:00")
+  |> should.equal(Error(parser.InvalidSchedule("expected `on` after `once`")))
+}
+
+pub fn one_off_missing_date_test() {
+  parse("once on monday")
+  |> should.equal(Error(parser.InvalidSchedule("expected date after `on`")))
+}
+
+pub fn one_off_missing_at_and_time_test() {
+  parse("once on 2024-01-15")
+  |> should.equal(
+    Error(parser.InvalidSchedule("expected `at` and time after date")),
+  )
+}
+
+pub fn one_off_missing_time_test() {
+  parse("once on 2024-01-15 at")
+  |> should.equal(
+    Error(parser.InvalidSchedule("expected time literal HH:mm after `at`")),
+  )
+}
+
+pub fn one_off_trailing_tokens_test() {
+  parse("once on 2024-01-15 at 09:00 daily")
+  |> should.equal(
+    Error(parser.InvalidSchedule("unexpected tokens after schedule: `daily`")),
+  )
+}
+
+// ============================================================
+// Frequency
 // frequency_sugar := "hourly" | "daily" | "weekly" | "monthly" | "annually"
 // frequency       := "every" number unit | frequency_sugar
+// ============================================================
 
 pub fn frequency_sugar_hourly_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
   parse("hourly")
-  |> should.equal(Ok(ast.Schedule(..schedule(), frequency: ast.Hourly)))
+  |> should.equal(Ok(ast.Recurring(..base, frequency: ast.Every(1, ast.Hours))))
 }
 
 pub fn frequency_sugar_daily_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
   parse("daily")
-  |> should.equal(Ok(ast.Schedule(..schedule(), frequency: ast.Daily)))
+  |> should.equal(Ok(ast.Recurring(..base, frequency: ast.Every(1, ast.Days))))
 }
 
 pub fn frequency_sugar_weekly_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
   parse("weekly")
-  |> should.equal(Ok(ast.Schedule(..schedule(), frequency: ast.Weekly)))
+  |> should.equal(Ok(ast.Recurring(..base, frequency: ast.Every(1, ast.Weeks))))
 }
 
 pub fn frequency_sugar_monthly_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
   parse("monthly")
-  |> should.equal(Ok(ast.Schedule(..schedule(), frequency: ast.Monthly)))
+  |> should.equal(Ok(ast.Recurring(..base, frequency: ast.Every(1, ast.Months))))
 }
 
 pub fn frequency_sugar_annually_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
   parse("annually")
-  |> should.equal(Ok(ast.Schedule(..schedule(), frequency: ast.Annually)))
+  |> should.equal(Ok(ast.Recurring(..base, frequency: ast.Every(1, ast.Years))))
 }
 
 pub fn frequency_every_second_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
   parse("every second")
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: ast.Every(1, ast.Seconds)),
+    ast.Recurring(..base, frequency: ast.Every(1, ast.Seconds)),
   ))
 }
 
 pub fn frequency_every_minute_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
   parse("every minute")
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: ast.Every(1, ast.Minutes)),
+    ast.Recurring(..base, frequency: ast.Every(1, ast.Minutes)),
   ))
 }
 
+pub fn frequency_every_hour_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  parse("every hour")
+  |> should.equal(Ok(ast.Recurring(..base, frequency: ast.Every(1, ast.Hours))))
+}
+
+pub fn frequency_every_day_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  parse("every day")
+  |> should.equal(Ok(ast.Recurring(..base, frequency: ast.Every(1, ast.Days))))
+}
+
+pub fn frequency_every_week_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  parse("every week")
+  |> should.equal(Ok(ast.Recurring(..base, frequency: ast.Every(1, ast.Weeks))))
+}
+
+pub fn frequency_every_month_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  parse("every month")
+  |> should.equal(Ok(ast.Recurring(..base, frequency: ast.Every(1, ast.Months))))
+}
+
+pub fn frequency_every_year_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  parse("every year")
+  |> should.equal(Ok(ast.Recurring(..base, frequency: ast.Every(1, ast.Years))))
+}
+
 pub fn frequency_every_1_second_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
   parse("every 1 second")
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: ast.Every(1, ast.Seconds)),
+    ast.Recurring(..base, frequency: ast.Every(1, ast.Seconds)),
   ))
 }
 
 pub fn frequency_every_1_minute_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
   parse("every 1 minute")
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: ast.Every(1, ast.Minutes)),
+    ast.Recurring(..base, frequency: ast.Every(1, ast.Minutes)),
   ))
+}
+
+pub fn frequency_every_1_hour_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  parse("every 1 hour")
+  |> should.equal(Ok(ast.Recurring(..base, frequency: ast.Every(1, ast.Hours))))
 }
 
 pub fn frequency_every_1_day_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
   parse("every 1 day")
-  |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: ast.Every(1, ast.Days)),
-  ))
+  |> should.equal(Ok(ast.Recurring(..base, frequency: ast.Every(1, ast.Days))))
+}
+
+pub fn frequency_every_1_week_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  parse("every 1 week")
+  |> should.equal(Ok(ast.Recurring(..base, frequency: ast.Every(1, ast.Weeks))))
+}
+
+pub fn frequency_every_1_month_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  parse("every 1 month")
+  |> should.equal(Ok(ast.Recurring(..base, frequency: ast.Every(1, ast.Months))))
+}
+
+pub fn frequency_every_1_year_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  parse("every 1 year")
+  |> should.equal(Ok(ast.Recurring(..base, frequency: ast.Every(1, ast.Years))))
 }
 
 pub fn frequency_every_30_seconds_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
   parse("every 30 seconds")
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: ast.Every(30, ast.Seconds)),
+    ast.Recurring(..base, frequency: ast.Every(30, ast.Seconds)),
   ))
 }
 
 pub fn frequency_every_5_minutes_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
   parse("every 5 minutes")
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: ast.Every(5, ast.Minutes)),
+    ast.Recurring(..base, frequency: ast.Every(5, ast.Minutes)),
   ))
 }
 
 pub fn frequency_every_2_hours_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
   parse("every 2 hours")
-  |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: ast.Every(2, ast.Hours)),
-  ))
+  |> should.equal(Ok(ast.Recurring(..base, frequency: ast.Every(2, ast.Hours))))
 }
 
 pub fn frequency_every_11_days_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
   parse("every 11 days")
-  |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: ast.Every(11, ast.Days)),
-  ))
+  |> should.equal(Ok(ast.Recurring(..base, frequency: ast.Every(11, ast.Days))))
 }
 
 pub fn frequency_every_3_weeks_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
   parse("every 3 weeks")
-  |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: ast.Every(3, ast.Weeks)),
-  ))
+  |> should.equal(Ok(ast.Recurring(..base, frequency: ast.Every(3, ast.Weeks))))
 }
 
 pub fn frequency_every_6_months_test() {
-  parse("every 6 months")
-  |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: ast.Every(6, ast.Months)),
-  ))
-}
+  let assert ast.Recurring(..) as base = recurring()
 
-pub fn frequency_every_year_test() {
-  parse("every year")
-  |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: ast.Every(1, ast.Years)),
-  ))
+  parse("every 6 months")
+  |> should.equal(Ok(ast.Recurring(..base, frequency: ast.Every(6, ast.Months))))
 }
 
 pub fn frequency_every_2_years_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
   parse("every 2 years")
-  |> should.equal(Ok(
-    ast.Schedule(..schedule(), frequency: ast.Every(2, ast.Years)),
-  ))
+  |> should.equal(Ok(ast.Recurring(..base, frequency: ast.Every(2, ast.Years))))
 }
 
 pub fn frequency_every_n_invalid_unit_error_test() {
@@ -174,337 +303,409 @@ pub fn frequency_missing_error_test() {
   )
 }
 
-// --- Time clause: "at" time_list
-// time_clause := "from" time "to" time | "at" time_list
+// ============================================================
+// Timing: "at" time_list | "from" time "to" time
+// ============================================================
 
-pub fn time_clause_at_single_test() {
-  once("at 09:00")
+pub fn timing_at_single_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("at 09:00")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), timing: Some(ast.At([ast.Time(9, 0)]))),
+    ast.Recurring(..base, timing: Some(ast.At([ast.Time(9, 0)]))),
   ))
 }
 
-pub fn time_clause_at_and_test() {
-  once("at 09:00 and 17:00")
+pub fn timing_at_and_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("at 09:00 and 17:00")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
+    ast.Recurring(
+      ..base,
       timing: Some(ast.At([ast.Time(9, 0), ast.Time(17, 0)])),
     ),
   ))
 }
 
-pub fn time_clause_at_comma_and_test() {
-  once("at 09:00, 12:00 and 17:00")
-  |> parse
+pub fn timing_at_comma_and_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("at 09:00, 12:00 and 17:00")
+  |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
+    ast.Recurring(
+      ..base,
       timing: Some(ast.At([ast.Time(9, 0), ast.Time(12, 0), ast.Time(17, 0)])),
     ),
   ))
 }
 
-pub fn time_clause_at_no_time_error_test() {
+pub fn timing_from_to_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("from 09:00 to 17:00")
+  |> parse()
+  |> should.equal(Ok(
+    ast.Recurring(
+      ..base,
+      timing: Some(ast.TimeRange(from: ast.Time(9, 0), to: ast.Time(17, 0))),
+    ),
+  ))
+}
+
+pub fn timing_at_no_time_error_test() {
   parse("daily at on weekdays")
   |> should.equal(
     Error(parser.InvalidTiming("expected time literal HH:mm after `at`")),
   )
 }
 
-pub fn time_clause_at_dangling_comma_error_test() {
-  once("at 09:00,")
+pub fn timing_at_dangling_comma_error_test() {
+  daily("at 09:00,")
   |> parse()
   |> should.equal(Error(parser.InvalidTiming("expected time after comma")))
 }
 
-pub fn time_clause_at_dangling_and_error_test() {
-  once("at 09:00 and")
+pub fn timing_at_dangling_and_error_test() {
+  daily("at 09:00 and")
   |> parse()
   |> should.equal(Error(parser.InvalidTiming("expected time after `and`")))
 }
 
-// --- Time clause: "from" time "to" time
-
-pub fn time_clause_from_to_test() {
-  once("from 09:00 to 17:00")
+pub fn timing_from_no_time_error_test() {
+  daily("from on weekdays")
   |> parse()
-  |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
-      timing: Some(ast.TimeRange(from: ast.Time(9, 0), to: ast.Time(17, 0))),
-    ),
-  ))
+  |> should.equal(Error(parser.InvalidTimeRange("expected time after `from`")))
 }
 
-pub fn time_clause_from_incomplete_error_test() {
-  once("from 08:00")
+pub fn timing_from_incomplete_error_test() {
+  daily("from 09:00")
   |> parse()
   |> should.equal(
     Error(parser.InvalidTimeRange("expected `to` after first time")),
   )
 }
 
-pub fn time_clause_from_no_time_error_test() {
-  once("from on weekdays")
-  |> parse()
-  |> should.equal(Error(parser.InvalidTimeRange("expected time after `from`")))
-}
-
-pub fn time_clause_from_to_no_end_time_error_test() {
-  once("from 09:00 to on")
+pub fn timing_from_to_no_end_time_error_test() {
+  daily("from 09:00 to on")
   |> parse()
   |> should.equal(Error(parser.InvalidTimeRange("expected time after `to`")))
 }
 
-// --- On clause: day_list
-// on_clause := "on" day_list | "on" day_group
-//            | "on" "the" bare_ordinal_list
-//            | "on" "the" qualified_ordinal_list
+// ============================================================
+// Days: "on" day_list | "on" day_group
+//       | "on" "the" bare_ordinal_list
+//       | "on" "the" qualified_ordinal_list
+// ============================================================
 
-pub fn on_clause_day_group_weekdays_test() {
-  once("on weekdays")
+pub fn days_weekdays_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("on weekdays")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), days: Some(ast.SpecificDays(days.weekdays()))),
+    ast.Recurring(..base, days: Some(ast.SpecificDays(days.weekdays()))),
   ))
 }
 
-pub fn on_clause_day_group_weekends_test() {
-  once("on weekends")
+pub fn days_weekends_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("on weekends")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), days: Some(ast.SpecificDays(days.weekend()))),
+    ast.Recurring(..base, days: Some(ast.SpecificDays(days.weekend()))),
   ))
 }
 
-pub fn on_clause_single_day_test() {
-  once("on monday")
+pub fn days_single_day_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("on monday")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), days: Some(ast.SpecificDays([ast.Mon]))),
+    ast.Recurring(..base, days: Some(ast.SpecificDays([ast.Mon]))),
   ))
 }
 
-pub fn on_clause_day_and_test() {
-  once("on monday and friday")
+pub fn days_day_and_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("on monday and friday")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), days: Some(ast.SpecificDays([ast.Mon, ast.Fri]))),
+    ast.Recurring(..base, days: Some(ast.SpecificDays([ast.Mon, ast.Fri]))),
   ))
 }
 
-pub fn on_clause_day_multi_list_test() {
-  once("on monday, wednesday and friday")
+pub fn days_day_list_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("on monday, wednesday and friday")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
+    ast.Recurring(
+      ..base,
       days: Some(ast.SpecificDays([ast.Mon, ast.Wed, ast.Fri])),
     ),
   ))
 }
 
-pub fn on_clause_invalid_day_error_test() {
-  once("on 15th")
+pub fn days_invalid_day_error_test() {
+  daily("on 15th")
   |> parse()
   |> should.equal(Error(parser.InvalidDays("token not a valid day")))
 }
 
-pub fn on_clause_day_dangling_comma_error_test() {
-  once("on monday,")
+pub fn days_day_dangling_comma_error_test() {
+  daily("on monday,")
   |> parse()
   |> should.equal(Error(parser.InvalidDays("expected day after comma")))
 }
 
-pub fn on_clause_day_dangling_and_error_test() {
-  once("on monday and")
+pub fn days_day_dangling_and_error_test() {
+  daily("on monday and")
   |> parse()
   |> should.equal(Error(parser.InvalidDays("expected day after `and`")))
 }
 
-// --- On clause: bare_ordinal_list
+// --- Bare ordinals
 
-pub fn on_clause_bare_ordinal_test() {
-  once("on the 1st")
+pub fn days_bare_ordinal_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("on the 1st")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), days: Some(ast.OrdinalDays([ast.DayOfMonth(1)]))),
+    ast.Recurring(..base, days: Some(ast.BareOrdinalDays([ast.DayOfMonth(1)]))),
   ))
 }
 
-pub fn on_clause_bare_ordinal_and_test() {
-  once("on the 1st and 15th")
+pub fn days_bare_ordinal_and_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("on the 1st and 15th")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
-      days: Some(ast.OrdinalDays([ast.DayOfMonth(1), ast.DayOfMonth(15)])),
+    ast.Recurring(
+      ..base,
+      days: Some(ast.BareOrdinalDays([ast.DayOfMonth(1), ast.DayOfMonth(15)])),
     ),
   ))
 }
 
-pub fn on_clause_bare_ordinal_multi_list_test() {
-  once("on the 1st, 15th and last")
+pub fn days_bare_ordinal_comma_and_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("on the 1st, 15th and last")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
+    ast.Recurring(
+      ..base,
       days: Some(
-        ast.OrdinalDays([ast.DayOfMonth(1), ast.DayOfMonth(15), ast.Last]),
+        ast.BareOrdinalDays([
+          ast.DayOfMonth(1),
+          ast.DayOfMonth(15),
+          ast.LastDay,
+        ]),
       ),
     ),
   ))
 }
 
-pub fn on_clause_bare_ordinal_last_test() {
-  once("on the last")
+pub fn days_bare_ordinal_last_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("on the last")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(..schedule(), days: Some(ast.OrdinalDays([ast.Last]))),
+    ast.Recurring(..base, days: Some(ast.BareOrdinalDays([ast.LastDay]))),
   ))
 }
 
-pub fn on_clause_bare_ordinal_last_in_list_test() {
-  once("on the last and 1st")
+pub fn days_bare_ordinal_last_and_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("on the last and 1st")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
-      days: Some(ast.OrdinalDays([ast.Last, ast.DayOfMonth(1)])),
+    ast.Recurring(
+      ..base,
+      days: Some(ast.BareOrdinalDays([ast.LastDay, ast.DayOfMonth(1)])),
     ),
   ))
 }
 
-pub fn on_clause_bare_ordinal_list_with_last_test() {
-  once("on the 1st and last")
+pub fn days_bare_ordinal_and_last_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("on the 1st and last")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
-      days: Some(ast.OrdinalDays([ast.DayOfMonth(1), ast.Last])),
+    ast.Recurring(
+      ..base,
+      days: Some(ast.BareOrdinalDays([ast.DayOfMonth(1), ast.LastDay])),
     ),
   ))
 }
 
-pub fn on_clause_ordinal_comma_then_last_test() {
-  once("on the 1st, last")
+pub fn days_bare_ordinal_comma_last_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("on the 1st, last")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
-      days: Some(ast.OrdinalDays([ast.DayOfMonth(1), ast.Last])),
+    ast.Recurring(
+      ..base,
+      days: Some(ast.BareOrdinalDays([ast.DayOfMonth(1), ast.LastDay])),
     ),
   ))
 }
 
-pub fn on_clause_ordinal_dangling_comma_error_test() {
-  once("on the 1st,")
+pub fn days_ordinal_dangling_comma_error_test() {
+  daily("on the 1st,")
   |> parse()
   |> should.equal(Error(parser.InvalidDays("expected ordinal after comma")))
 }
 
-pub fn on_clause_ordinal_dangling_and_error_test() {
-  once("on the 1st and")
+pub fn days_ordinal_dangling_and_error_test() {
+  daily("on the 1st and")
   |> parse()
   |> should.equal(Error(parser.InvalidDays("expected ordinal after `and`")))
 }
 
-// --- On clause: qualified_ordinal_list
+// --- Qualified ordinals
 
-pub fn on_clause_qualified_ordinal_first_test() {
-  once("on the first monday")
+pub fn days_qualified_first_monday_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("on the first monday")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
-      days: Some(ast.OrdinalDays([ast.NthWeekday(ast.First, ast.Mon)])),
+    ast.Recurring(
+      ..base,
+      days: Some(ast.QualifiedOrdinalDays([ast.NthWeekday(ast.First, ast.Mon)])),
     ),
   ))
 }
 
-pub fn on_clause_qualified_ordinal_last_test() {
-  once("on the last friday")
+pub fn days_qualified_last_friday_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("on the last friday")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
-      days: Some(ast.OrdinalDays([ast.NthWeekday(ast.LastPos, ast.Fri)])),
+    ast.Recurring(
+      ..base,
+      days: Some(ast.QualifiedOrdinalDays([ast.NthWeekday(ast.Last, ast.Fri)])),
     ),
   ))
 }
 
-pub fn on_clause_qualified_ordinal_second_test() {
-  once("on the second tuesday")
-  |> parse()
-  |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
-      days: Some(ast.OrdinalDays([ast.NthWeekday(ast.Second, ast.Tue)])),
-    ),
-  ))
-}
+pub fn days_qualified_second_tuesday_test() {
+  let assert ast.Recurring(..) as base = recurring()
 
-pub fn on_clause_qualified_ordinal_fifth_test() {
-  once("on the fifth monday")
+  daily("on the second tuesday")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
-      days: Some(ast.OrdinalDays([ast.NthWeekday(ast.Fifth, ast.Mon)])),
-    ),
-  ))
-}
-
-pub fn on_clause_qualified_ordinal_and_test() {
-  once("on the first monday and last friday")
-  |> parse()
-  |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
+    ast.Recurring(
+      ..base,
       days: Some(
-        ast.OrdinalDays([
+        ast.QualifiedOrdinalDays([ast.NthWeekday(ast.Second, ast.Tue)]),
+      ),
+    ),
+  ))
+}
+
+pub fn days_qualified_fifth_monday_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("on the fifth monday")
+  |> parse()
+  |> should.equal(Ok(
+    ast.Recurring(
+      ..base,
+      days: Some(ast.QualifiedOrdinalDays([ast.NthWeekday(ast.Fifth, ast.Mon)])),
+    ),
+  ))
+}
+
+pub fn days_qualified_and_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("on the first monday and last friday")
+  |> parse()
+  |> should.equal(Ok(
+    ast.Recurring(
+      ..base,
+      days: Some(
+        ast.QualifiedOrdinalDays([
           ast.NthWeekday(ast.First, ast.Mon),
-          ast.NthWeekday(ast.LastPos, ast.Fri),
+          ast.NthWeekday(ast.Last, ast.Fri),
         ]),
       ),
     ),
   ))
 }
 
-pub fn on_clause_qualified_ordinal_comma_list_test() {
-  once("on the first monday, last friday")
+pub fn days_qualified_comma_list_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("on the first monday, last friday")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
+    ast.Recurring(
+      ..base,
       days: Some(
-        ast.OrdinalDays([
+        ast.QualifiedOrdinalDays([
           ast.NthWeekday(ast.First, ast.Mon),
-          ast.NthWeekday(ast.LastPos, ast.Fri),
+          ast.NthWeekday(ast.Last, ast.Fri),
         ]),
       ),
     ),
   ))
 }
 
-pub fn on_clause_qualified_no_weekday_error_test() {
-  once("on the first at")
+pub fn days_qualified_no_weekday_error_test() {
+  daily("on the first at")
   |> parse()
   |> should.equal(Error(parser.InvalidDays("token not a valid day")))
 }
 
-// --- Bounds
-// bounds := "starting" date | "starting" date "until" date
+pub fn days_qualified_invalid_position_error_test() {
+  daily("on the at monday")
+  |> parse()
+  |> should.equal(Error(parser.InvalidDays("expected position")))
+}
+
+pub fn days_qualified_dangling_comma_error_test() {
+  daily("on the first monday,")
+  |> parse()
+  |> should.equal(Error(parser.InvalidDays("expected ordinal after comma")))
+}
+
+pub fn days_qualified_dangling_and_error_test() {
+  daily("on the first monday and")
+  |> parse()
+  |> should.equal(Error(parser.InvalidDays("expected ordinal after `and`")))
+}
+
+// ============================================================
+// Bounds
+// bounds := "starting" date ("at" time)? ("until" date ("at" time)?)?
+// ============================================================
 
 pub fn bounds_starting_test() {
-  once("starting 2024-01-01")
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("starting 2024-01-01")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
+    ast.Recurring(
+      ..base,
       bounds: Some(
         ast.Starting(ast.BoundPoint(date: ast.Date(2024, 1, 1), time: None)),
       ),
@@ -513,11 +714,13 @@ pub fn bounds_starting_test() {
 }
 
 pub fn bounds_starting_with_time_test() {
-  once("starting 2024-01-01 at 09:00")
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("starting 2024-01-01 at 09:00")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
+    ast.Recurring(
+      ..base,
       bounds: Some(
         ast.Starting(ast.BoundPoint(
           date: ast.Date(2024, 1, 1),
@@ -528,12 +731,14 @@ pub fn bounds_starting_with_time_test() {
   ))
 }
 
-pub fn bounds_starting_until_test() {
-  once("starting 2024-01-01 until 2024-12-31")
+pub fn bounds_between_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("starting 2024-01-01 until 2024-12-31")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
+    ast.Recurring(
+      ..base,
       bounds: Some(ast.Between(
         from: ast.BoundPoint(date: ast.Date(2024, 1, 1), time: None),
         to: ast.BoundPoint(date: ast.Date(2024, 12, 31), time: None),
@@ -542,12 +747,14 @@ pub fn bounds_starting_until_test() {
   ))
 }
 
-pub fn bounds_starting_until_with_time_schedule_test() {
-  once("starting 2024-01-01 at 09:00 until 2024-12-31 at 17:00")
+pub fn bounds_between_both_times_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("starting 2024-01-01 at 09:00 until 2024-12-31 at 17:00")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
+    ast.Recurring(
+      ..base,
       bounds: Some(ast.Between(
         from: ast.BoundPoint(
           date: ast.Date(2024, 1, 1),
@@ -562,12 +769,14 @@ pub fn bounds_starting_until_with_time_schedule_test() {
   ))
 }
 
-pub fn bounds_starting_with_time_until_no_time_test() {
-  once("starting 2024-01-01 at 09:00 until 2024-12-31")
+pub fn bounds_between_from_time_only_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("starting 2024-01-01 at 09:00 until 2024-12-31")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
+    ast.Recurring(
+      ..base,
       bounds: Some(ast.Between(
         from: ast.BoundPoint(
           date: ast.Date(2024, 1, 1),
@@ -579,12 +788,14 @@ pub fn bounds_starting_with_time_until_no_time_test() {
   ))
 }
 
-pub fn bounds_starting_no_time_until_with_time_test() {
-  once("starting 2024-01-01 until 2024-12-31 at 17:00")
+pub fn bounds_between_to_time_only_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("starting 2024-01-01 until 2024-12-31 at 17:00")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
+    ast.Recurring(
+      ..base,
       bounds: Some(ast.Between(
         from: ast.BoundPoint(date: ast.Date(2024, 1, 1), time: None),
         to: ast.BoundPoint(
@@ -597,92 +808,110 @@ pub fn bounds_starting_no_time_until_with_time_test() {
 }
 
 pub fn bounds_starting_no_date_error_test() {
-  once("starting")
+  daily("starting")
   |> parse()
   |> should.equal(Error(parser.InvalidBounds("expected date after `starting`")))
 }
 
 pub fn bounds_starting_until_no_end_date_error_test() {
-  once("starting 2024-01-01 until")
+  daily("starting 2024-01-01 until")
+  |> parse()
+  |> should.equal(Error(parser.InvalidBounds("expected date after `until`")))
+}
+
+pub fn bounds_starting_time_until_no_end_date_error_test() {
+  daily("starting 2024-01-01 at 09:00 until")
   |> parse()
   |> should.equal(Error(parser.InvalidBounds("expected date after `until`")))
 }
 
 pub fn bounds_until_without_starting_error_test() {
-  once("until 2024-01-01")
+  daily("until 2024-01-01")
   |> parse()
   |> should.equal(Error(parser.InvalidBounds("expected date after `until`")))
 }
 
-// --- Exclusions
-// exclusion  := "except" on_clause | "except" time_clause
+// ============================================================
+// Exclusions
+// exclusion  := "except" on_clause | "except" time_clause | "except" bounds
 // exclusions := exclusion+
+// ============================================================
 
-pub fn exclusion_except_on_clause_group_test() {
-  once("except on weekends")
+pub fn exclusion_except_on_weekends_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("except on weekends")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
+    ast.Recurring(
+      ..base,
       exclusions: Some([ast.ExceptDays(ast.SpecificDays(days.weekend()))]),
     ),
   ))
 }
 
-pub fn exclusion_except_on_clause_day_test() {
-  once("except on monday")
+pub fn exclusion_except_on_weekdays_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("except on weekdays")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
+    ast.Recurring(
+      ..base,
+      exclusions: Some([ast.ExceptDays(ast.SpecificDays(days.weekdays()))]),
+    ),
+  ))
+}
+
+pub fn exclusion_except_on_day_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("except on monday")
+  |> parse()
+  |> should.equal(Ok(
+    ast.Recurring(
+      ..base,
       exclusions: Some([ast.ExceptDays(ast.SpecificDays([ast.Mon]))]),
     ),
   ))
 }
 
-pub fn exclusion_except_on_clause_ordinal_test() {
-  once("except on the 1st")
-  |> parse()
-  |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
-      exclusions: Some([ast.ExceptDays(ast.OrdinalDays([ast.DayOfMonth(1)]))]),
-    ),
-  ))
-}
+pub fn exclusion_except_on_ordinal_test() {
+  let assert ast.Recurring(..) as base = recurring()
 
-pub fn exclusion_except_from_to_test() {
-  once("except from 22:00 to 06:00")
+  daily("except on the 1st")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
+    ast.Recurring(
+      ..base,
       exclusions: Some([
-        ast.ExceptTime(ast.TimeRange(from: ast.Time(22, 0), to: ast.Time(6, 0))),
+        ast.ExceptDays(ast.BareOrdinalDays([ast.DayOfMonth(1)])),
       ]),
     ),
   ))
 }
 
-pub fn exclusion_except_at_time_test() {
-  once("except at 12:00")
+pub fn exclusion_except_at_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("except at 12:00")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
-      exclusions: Some([
-        ast.ExceptTime(ast.At([ast.Time(12, 0)])),
-      ]),
+    ast.Recurring(
+      ..base,
+      exclusions: Some([ast.ExceptTime(ast.At([ast.Time(12, 0)]))]),
     ),
   ))
 }
 
-pub fn exclusion_except_at_time_list_test() {
-  once("except at 12:00 and 13:00")
+pub fn exclusion_except_at_list_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("except at 12:00 and 13:00")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
+    ast.Recurring(
+      ..base,
       exclusions: Some([
         ast.ExceptTime(ast.At([ast.Time(12, 0), ast.Time(13, 0)])),
       ]),
@@ -690,12 +919,29 @@ pub fn exclusion_except_at_time_list_test() {
   ))
 }
 
-pub fn exclusion_except_bounds_starting_test() {
-  once("except starting 2024-06-01")
+pub fn exclusion_except_from_to_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("except from 22:00 to 06:00")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
+    ast.Recurring(
+      ..base,
+      exclusions: Some([
+        ast.ExceptTime(ast.TimeRange(from: ast.Time(22, 0), to: ast.Time(6, 0))),
+      ]),
+    ),
+  ))
+}
+
+pub fn exclusion_except_starting_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("except starting 2024-06-01")
+  |> parse()
+  |> should.equal(Ok(
+    ast.Recurring(
+      ..base,
       exclusions: Some([
         ast.ExceptBounds(
           ast.Starting(ast.BoundPoint(date: ast.Date(2024, 6, 1), time: None)),
@@ -705,12 +951,14 @@ pub fn exclusion_except_bounds_starting_test() {
   ))
 }
 
-pub fn exclusion_except_bounds_between_test() {
-  once("except starting 2024-06-01 until 2024-06-30")
+pub fn exclusion_except_between_test() {
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("except starting 2024-06-01 until 2024-06-30")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
+    ast.Recurring(
+      ..base,
       exclusions: Some([
         ast.ExceptBounds(ast.Between(
           from: ast.BoundPoint(date: ast.Date(2024, 6, 1), time: None),
@@ -722,11 +970,13 @@ pub fn exclusion_except_bounds_between_test() {
 }
 
 pub fn exclusion_multiple_test() {
-  once("except on weekends except from 22:00 to 06:00")
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("except on weekends except from 22:00 to 06:00")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
+    ast.Recurring(
+      ..base,
       exclusions: Some([
         ast.ExceptDays(ast.SpecificDays(days.weekend())),
         ast.ExceptTime(ast.TimeRange(from: ast.Time(22, 0), to: ast.Time(6, 0))),
@@ -736,35 +986,39 @@ pub fn exclusion_multiple_test() {
 }
 
 pub fn exclusion_multiple_three_test() {
-  once("except on weekends except from 22:00 to 06:00 except on the 1st")
+  let assert ast.Recurring(..) as base = recurring()
+
+  daily("except on weekends except from 22:00 to 06:00 except on the 1st")
   |> parse()
   |> should.equal(Ok(
-    ast.Schedule(
-      ..schedule(),
+    ast.Recurring(
+      ..base,
       exclusions: Some([
         ast.ExceptDays(ast.SpecificDays(days.weekend())),
         ast.ExceptTime(ast.TimeRange(from: ast.Time(22, 0), to: ast.Time(6, 0))),
-        ast.ExceptDays(ast.OrdinalDays([ast.DayOfMonth(1)])),
+        ast.ExceptDays(ast.BareOrdinalDays([ast.DayOfMonth(1)])),
       ]),
     ),
   ))
 }
 
 pub fn exclusion_except_nothing_error_test() {
-  once("except")
+  daily("except")
   |> parse()
   |> should.equal(
     Error(parser.InvalidExclusion("expected days or time range after `except`")),
   )
 }
 
-// --- Full schedule
+// ============================================================
+// Full schedules
 // schedule := frequency time_clause? on_clause? bounds? exclusions?
+// ============================================================
 
 pub fn full_schedule_freq_and_days_test() {
   parse("every 5 minutes on weekdays")
   |> should.equal(
-    Ok(ast.Schedule(
+    Ok(ast.Recurring(
       frequency: ast.Every(5, ast.Minutes),
       timing: None,
       days: Some(ast.SpecificDays(days.weekdays())),
@@ -777,8 +1031,8 @@ pub fn full_schedule_freq_and_days_test() {
 pub fn full_schedule_freq_timing_days_test() {
   parse("daily at 09:00 on weekdays")
   |> should.equal(
-    Ok(ast.Schedule(
-      frequency: ast.Daily,
+    Ok(ast.Recurring(
+      frequency: ast.Every(1, ast.Days),
       timing: Some(ast.At([ast.Time(9, 0)])),
       days: Some(ast.SpecificDays(days.weekdays())),
       bounds: None,
@@ -790,8 +1044,8 @@ pub fn full_schedule_freq_timing_days_test() {
 pub fn full_schedule_daily_at_starting_test() {
   parse("daily at 09:00 starting 2024-01-01")
   |> should.equal(
-    Ok(ast.Schedule(
-      frequency: ast.Daily,
+    Ok(ast.Recurring(
+      frequency: ast.Every(1, ast.Days),
       timing: Some(ast.At([ast.Time(9, 0)])),
       days: None,
       bounds: Some(
@@ -805,7 +1059,7 @@ pub fn full_schedule_daily_at_starting_test() {
 pub fn full_schedule_freq_days_exclusion_test() {
   parse("every 30 minutes on weekdays except on friday")
   |> should.equal(
-    Ok(ast.Schedule(
+    Ok(ast.Recurring(
       frequency: ast.Every(30, ast.Minutes),
       timing: None,
       days: Some(ast.SpecificDays(days.weekdays())),
@@ -818,8 +1072,8 @@ pub fn full_schedule_freq_days_exclusion_test() {
 pub fn full_schedule_all_clauses_test() {
   parse("daily at 09:00 on weekdays starting 2024-01-01 until 2024-12-31")
   |> should.equal(
-    Ok(ast.Schedule(
-      frequency: ast.Daily,
+    Ok(ast.Recurring(
+      frequency: ast.Every(1, ast.Days),
       timing: Some(ast.At([ast.Time(9, 0)])),
       days: Some(ast.SpecificDays(days.weekdays())),
       bounds: Some(ast.Between(
@@ -834,14 +1088,23 @@ pub fn full_schedule_all_clauses_test() {
 pub fn full_schedule_hourly_from_to_on_weekdays_test() {
   parse("hourly from 09:00 to 17:00 on weekdays")
   |> should.equal(
-    Ok(ast.Schedule(
-      frequency: ast.Hourly,
+    Ok(ast.Recurring(
+      frequency: ast.Every(1, ast.Hours),
       timing: Some(ast.TimeRange(from: ast.Time(9, 0), to: ast.Time(17, 0))),
       days: Some(ast.SpecificDays(days.weekdays())),
       bounds: None,
       exclusions: None,
     )),
   )
+}
+
+// ============================================================
+// Edge cases
+// ============================================================
+
+pub fn empty_input_error_test() {
+  parse("")
+  |> should.equal(Error(parser.InvalidSchedule("empty")))
 }
 
 pub fn trailing_tokens_error_test() {
