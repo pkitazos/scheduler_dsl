@@ -11,7 +11,7 @@
 ## days
 - [x] `SpecificDays`: reject duplicate days
 - [x] `OrdinalDays`: `DayOfMonth(n)` must be 1–31
-- [x] `OrdinalDays`: reject duplicate entries (structural equality)
+- [/] `OrdinalDays`: reject duplicate entries (see notes)
 - [x] `OrdinalDays`: informational message when mixing bare and qualified ordinals
 - [ ] `OrdinalDays`: informational message when bare and qualified ordinals might overlap
 
@@ -21,11 +21,29 @@
 - [x] `Between`: start must be before end
 
 ## exclusions
-- [/] reject duplicate exclusions (structural equality)
-- [/] reject exclusion that is a strict subset of another exclusion
-- [ ] `ExceptTime`: all timing rules carry forward
-- [ ] `ExceptDays`: all days rules carry forward
-- [ ] `ExceptBounds`: all bounds rules carry forward
+
+### general (across all exclusions)
+- [x] reject duplicate exclusions (see notes)
+
+### ExceptDays
+- [ ] all individual days rules carry forward
+- [/] reject day exclusion that is a strict subset of another day exclusion
+- [/] informational: partial overlap between day exclusions
+- [ ] ordinal days subset/overlap detection (same-kind only)
+
+### ExceptTime
+- [ ] all individual timing rules carry forward
+      (validate hours/minutes, At: no duplicate times,
+       TimeRange: from != to)
+- [ ] reject mixing time ranges and time lists across exclusions
+- [ ] reject time exclusion that is a strict subset of another time exclusion
+      (e.g. "except at 09:00" is redundant alongside "except from 08:00 to 10:00")
+
+### ExceptBounds
+- [ ] all individual bounds rules carry forward
+      (validate dates, validate times, Between: start before end)
+- [ ] reject bounds exclusion that is a strict subset of another bounds exclusion
+      (e.g. a date range fully inside another date range)
 
 ## cross-clause (incomplete)
 - [ ] bounds too narrow for frequency/days

@@ -1,5 +1,4 @@
-import library/ast
-import library/ast/days
+import library/utils
 import library/validator
 
 import gleam/io
@@ -33,15 +32,50 @@ pub fn main() {
   // }
 
   io.println("")
-  io.println("")
-  io.println("")
 
   // except Sunday, Monday and Tuesday ; except Weekends ; except Weekdays ; except Saturday
 
-  validator.validate_exclusions([
-    ast.ExceptDays(ast.SpecificDays([ast.Sun, ast.Mon, ast.Tue])),
-    ast.ExceptDays(ast.SpecificDays(days.weekend())),
-    ast.ExceptDays(ast.SpecificDays(days.weekdays())),
-    ast.ExceptDays(ast.SpecificDays([ast.Sat])),
-  ])
+  let res =
+    validator.validate_exclusions([
+      // Qualified Ordinals
+    //
+    //   ast.ExceptDays(
+    //     ast.QualifiedOrdinalDays([ast.NthWeekday(ast.First, ast.Mon)]),
+    //   ),
+    //   ast.ExceptDays(
+    //     ast.QualifiedOrdinalDays([
+    //       ast.NthWeekday(ast.First, ast.Mon),
+    //       ast.NthWeekday(ast.Last, ast.Mon),
+    //     ]),
+    //   ),
+    //   ast.ExceptDays(
+    //     ast.QualifiedOrdinalDays([ast.NthWeekday(ast.Last, ast.Mon)]),
+    //   ),
+    //
+    // Bare Ordinals
+    //
+    // ast.ExceptDays(ast.BareOrdinalDays([ast.DayOfMonth(1)])),
+    // ast.ExceptDays(
+    //   ast.BareOrdinalDays([
+    //     ast.DayOfMonth(1),
+    //     ast.DayOfMonth(2),
+    //     ast.DayOfMonth(3),
+    //   ]),
+    // ),
+    // ast.ExceptDays(
+    //   ast.BareOrdinalDays([ast.DayOfMonth(3), ast.DayOfMonth(4)]),
+    // ),
+    //
+    // Specific Days of the Weeek
+    //
+    // ast.ExceptDays(ast.SpecificDays([ast.Sun, ast.Mon, ast.Tue])),
+    // ast.ExceptDays(ast.SpecificDays(days.weekend())),
+    // ast.ExceptDays(ast.SpecificDays(days.weekdays())),
+    // ast.ExceptDays(ast.SpecificDays([ast.Sat])),
+    ])
+
+  case res {
+    Ok(_) -> io.println("ok")
+    Error(e) -> utils.debug(e)
+  }
 }

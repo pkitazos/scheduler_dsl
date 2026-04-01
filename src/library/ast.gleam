@@ -1,4 +1,5 @@
 import gleam/option.{type Option}
+import library/ast/multiset
 
 /// complete schedule expression
 pub type Schedule {
@@ -39,6 +40,19 @@ pub type Days {
   QualifiedOrdinalDays(List(NthWeekday))
 }
 
+pub fn eq_days(a: Days, b: Days) -> Bool {
+  case a, b {
+    SpecificDays(xs), SpecificDays(ys) -> multiset.eq(xs, ys)
+    SpecificDays(_), _ -> False
+
+    BareOrdinalDays(xs), BareOrdinalDays(ys) -> multiset.eq(xs, ys)
+    BareOrdinalDays(_), _ -> False
+
+    QualifiedOrdinalDays(xs), QualifiedOrdinalDays(ys) -> multiset.eq(xs, ys)
+    QualifiedOrdinalDays(_), _ -> False
+  }
+}
+
 pub type DayOfWeek {
   Mon
   Tue
@@ -72,6 +86,14 @@ pub type Timing {
   At(times: List(Time))
   /// "from 9:00 to 17:00"
   TimeRange(from: Time, to: Time)
+}
+
+pub fn eq_times(a: Timing, b: Timing) -> Bool {
+  case a, b {
+    At(xs), At(ys) -> multiset.eq(xs, ys)
+    At(_), TimeRange(_, _) -> False
+    a, b -> a == b
+  }
 }
 
 /// Date and optional time "2024-01-01 at 09:00" or "2024-01-01"

@@ -147,6 +147,7 @@ fn validate_days(days: ast.Days) -> Result(ast.Days, ValidatorError) {
   }
 }
 
+// todo: check call sites, it's possible that two equivalent multisets of AST nodes are not treated as the
 fn no_duplicates(xs: List(a), err_f: fn(List(a)) -> b) -> Result(List(a), b) {
   case find_duplicates(xs) {
     [] -> Ok(xs)
