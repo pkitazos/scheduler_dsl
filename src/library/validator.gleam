@@ -30,12 +30,26 @@ pub type ValidatorError {
 }
 
 pub fn validate(schedule: ast.Schedule) -> Result(ast.Schedule, ValidatorError) {
-  use _ <- result.try(validate_frequency(schedule.frequency))
-  use _ <- result.try(option_try(schedule.timing, validate_timing))
-  use _ <- result.try(option_try(schedule.days, validate_days))
-  use _ <- result.try(option_try(schedule.bounds, validate_bounds))
+  case schedule {
+    ast.OneOff(date, time) -> {
+      use _date <- result.try(guard(
+        date,
+        validate_date,
+        InvalidDate("invalid date", date),
+      ))
+      use _time <- result.try(validate_time_result(time))
 
-  Ok(schedule)
+      Ok(schedule)
+    }
+    ast.Recurring(frequency, timing, days, bounds, _exclusions) -> {
+      use _ <- result.try(validate_frequency(frequency))
+      use _ <- result.try(option_try(timing, validate_timing))
+      use _ <- result.try(option_try(days, validate_days))
+      use _ <- result.try(option_try(bounds, validate_bounds))
+
+      Ok(schedule)
+    }
+  }
 }
 
 fn validate_frequency(
@@ -104,13 +118,10 @@ fn validate_days(days: ast.Days) -> Result(ast.Days, ValidatorError) {
           |> list.try_fold(x, fn(acc, val) {
             case acc, val {
               ast.DayOfMonth(_), ast.DayOfMonth(_)
-              | ast.DayOfMonth(_), ast.Last
-              | ast.Last, ast.Last
-              | ast.Last, ast.DayOfMonth(_)
+              | ast.DayOfMonth(_), ast.LastDay
+              | ast.LastDay, ast.LastDay
+              | ast.LastDay, ast.DayOfMonth(_)
               -> Ok(acc)
-              ast.NthWeekday(_, _), ast.NthWeekday(_, _) -> Ok(acc)
-              // todo: mixed bare/qualified ordinals are valid but we should emit an informational message here
-              _, _ -> Ok(acc)
             }
           })
         }
@@ -130,6 +141,8 @@ fn validate_days(days: ast.Days) -> Result(ast.Days, ValidatorError) {
 
       Ok(days)
     }
+
+    ast.QualifiedOrdinalDays(_) -> panic
   }
 }
 
