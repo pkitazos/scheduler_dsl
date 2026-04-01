@@ -31,3 +31,10 @@
 - [ ] bounds too narrow for frequency/days
 - [ ] exclusions that totally cancel the schedule
 - [ ] `DayOfMonth(31)` with monthly context (only fires some months)
+
+
+# General Thoughts
+
+A lot of our AST nodes currently carry lists of data, but in the sense of a schedule, lists like "monday, tuesday and wednesday" should be treated like a set, not a list. The order is irrelevant. "monday, tuesday and wednesday" is the same as "tuesday, monday and wednesday"
+
+So our `no_duplicates` check doesn't quite work.

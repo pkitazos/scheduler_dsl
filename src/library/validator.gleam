@@ -25,6 +25,7 @@ pub type ValidatorError {
   InvalidDayOfMonth(String, ast.Ordinal)
   InvalidBounds(String, ast.Bounds)
   InvalidDate(String, ast.Date)
+  InvalidQualifiedOrdinalDays(String, List(ast.NthWeekday))
   InvalidExclusions(String, List(ast.Exclusion))
   InvalidExclusionsDays(String)
 }
