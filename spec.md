@@ -60,13 +60,13 @@ ordinal_list     := bare_ordinal_list | qualified_ordinal_list
 
 ### Clauses
 ```
+time_clause      := "from" time "to" time
+                  | "at" time_list
+                  
 on_clause        := "on" day_list
                   | "on" day_group
                   | "on" "the" bare_ordinal_list
                   | "on" "the" qualified_ordinal_list
-
-time_clause      := "from" time "to" time
-                  | "at" time_list
 
 bounds           := "starting" date
                   | "starting" date "until" date
