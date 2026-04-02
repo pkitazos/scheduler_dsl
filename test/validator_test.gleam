@@ -1,7 +1,6 @@
 import gleam/option.{None, Some}
 import gleeunit/should
 import library/ast
-import library/ast/days
 import library/validator
 
 // --- Helpers
@@ -230,20 +229,25 @@ pub fn at_invalid_time_before_duplicate_check_test() {
 // --- Bounds: Starting
 
 pub fn starting_valid_date_no_time_test() {
-  let s = with_bounds(ast.Starting(ast.BoundPoint(ast.Date(2025, 3, 15), None)))
+  let s =
+    with_bounds(
+      ast.Starting(ast.BoundPoint(ast.Date(2025, 3, 15), ast.midnight())),
+    )
   validator.validate(s) |> should.equal(Ok(s))
 }
 
 pub fn starting_valid_date_and_time_test() {
   let s =
     with_bounds(
-      ast.Starting(ast.BoundPoint(ast.Date(2025, 3, 15), Some(ast.Time(9, 0)))),
+      ast.Starting(ast.BoundPoint(ast.Date(2025, 3, 15), ast.Time(9, 0))),
     )
   validator.validate(s) |> should.equal(Ok(s))
 }
 
 pub fn starting_invalid_date_test() {
-  with_bounds(ast.Starting(ast.BoundPoint(ast.Date(2025, 13, 1), None)))
+  with_bounds(
+    ast.Starting(ast.BoundPoint(ast.Date(2025, 13, 1), ast.midnight())),
+  )
   |> validator.validate
   |> should.equal(
     Error(validator.InvalidDate("invalid date", ast.Date(2025, 13, 1))),
@@ -252,7 +256,7 @@ pub fn starting_invalid_date_test() {
 
 pub fn starting_valid_date_invalid_time_test() {
   with_bounds(
-    ast.Starting(ast.BoundPoint(ast.Date(2025, 3, 15), Some(ast.Time(25, 0)))),
+    ast.Starting(ast.BoundPoint(ast.Date(2025, 3, 15), ast.Time(25, 0))),
   )
   |> validator.validate
   |> should.equal(Error(validator.InvalidTime("invalid time", ast.Time(25, 0))))
@@ -261,12 +265,17 @@ pub fn starting_valid_date_invalid_time_test() {
 // --- Bounds: Starting (date edge cases)
 
 pub fn starting_feb_29_leap_year_test() {
-  let s = with_bounds(ast.Starting(ast.BoundPoint(ast.Date(2024, 2, 29), None)))
+  let s =
+    with_bounds(
+      ast.Starting(ast.BoundPoint(ast.Date(2024, 2, 29), ast.midnight())),
+    )
   validator.validate(s) |> should.equal(Ok(s))
 }
 
 pub fn starting_feb_29_non_leap_year_test() {
-  with_bounds(ast.Starting(ast.BoundPoint(ast.Date(2025, 2, 29), None)))
+  with_bounds(
+    ast.Starting(ast.BoundPoint(ast.Date(2025, 2, 29), ast.midnight())),
+  )
   |> validator.validate
   |> should.equal(
     Error(validator.InvalidDate("invalid date", ast.Date(2025, 2, 29))),
@@ -274,7 +283,9 @@ pub fn starting_feb_29_non_leap_year_test() {
 }
 
 pub fn starting_day_31_on_30_day_month_test() {
-  with_bounds(ast.Starting(ast.BoundPoint(ast.Date(2025, 4, 31), None)))
+  with_bounds(
+    ast.Starting(ast.BoundPoint(ast.Date(2025, 4, 31), ast.midnight())),
+  )
   |> validator.validate
   |> should.equal(
     Error(validator.InvalidDate("invalid date", ast.Date(2025, 4, 31))),
@@ -282,7 +293,9 @@ pub fn starting_day_31_on_30_day_month_test() {
 }
 
 pub fn starting_month_0_test() {
-  with_bounds(ast.Starting(ast.BoundPoint(ast.Date(2025, 0, 1), None)))
+  with_bounds(
+    ast.Starting(ast.BoundPoint(ast.Date(2025, 0, 1), ast.midnight())),
+  )
   |> validator.validate
   |> should.equal(
     Error(validator.InvalidDate("invalid date", ast.Date(2025, 0, 1))),
@@ -290,7 +303,9 @@ pub fn starting_month_0_test() {
 }
 
 pub fn starting_day_0_test() {
-  with_bounds(ast.Starting(ast.BoundPoint(ast.Date(2025, 1, 0), None)))
+  with_bounds(
+    ast.Starting(ast.BoundPoint(ast.Date(2025, 1, 0), ast.midnight())),
+  )
   |> validator.validate
   |> should.equal(
     Error(validator.InvalidDate("invalid date", ast.Date(2025, 1, 0))),
@@ -302,8 +317,8 @@ pub fn starting_day_0_test() {
 pub fn between_valid_dates_no_times_test() {
   let s =
     with_bounds(ast.Between(
-      ast.BoundPoint(ast.Date(2025, 1, 1), None),
-      ast.BoundPoint(ast.Date(2025, 12, 31), None),
+      ast.BoundPoint(ast.Date(2025, 1, 1), ast.midnight()),
+      ast.BoundPoint(ast.Date(2025, 12, 31), ast.midnight()),
     ))
   validator.validate(s) |> should.equal(Ok(s))
 }
@@ -311,16 +326,16 @@ pub fn between_valid_dates_no_times_test() {
 pub fn between_valid_dates_and_times_test() {
   let s =
     with_bounds(ast.Between(
-      ast.BoundPoint(ast.Date(2025, 1, 1), Some(ast.Time(9, 0))),
-      ast.BoundPoint(ast.Date(2025, 12, 31), Some(ast.Time(17, 0))),
+      ast.BoundPoint(ast.Date(2025, 1, 1), ast.Time(9, 0)),
+      ast.BoundPoint(ast.Date(2025, 12, 31), ast.Time(17, 0)),
     ))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
 pub fn between_invalid_start_date_test() {
   with_bounds(ast.Between(
-    ast.BoundPoint(ast.Date(2025, 13, 1), None),
-    ast.BoundPoint(ast.Date(2025, 12, 31), None),
+    ast.BoundPoint(ast.Date(2025, 13, 1), ast.midnight()),
+    ast.BoundPoint(ast.Date(2025, 12, 31), ast.midnight()),
   ))
   |> validator.validate
   |> should.equal(
@@ -330,8 +345,8 @@ pub fn between_invalid_start_date_test() {
 
 pub fn between_invalid_end_date_test() {
   with_bounds(ast.Between(
-    ast.BoundPoint(ast.Date(2025, 1, 1), None),
-    ast.BoundPoint(ast.Date(2025, 2, 30), None),
+    ast.BoundPoint(ast.Date(2025, 1, 1), ast.midnight()),
+    ast.BoundPoint(ast.Date(2025, 2, 30), ast.midnight()),
   ))
   |> validator.validate
   |> should.equal(
@@ -342,8 +357,8 @@ pub fn between_invalid_end_date_test() {
 pub fn between_invalid_bounds_test() {
   let s =
     ast.Between(
-      ast.BoundPoint(ast.Date(2025, 12, 31), None),
-      ast.BoundPoint(ast.Date(2025, 1, 1), None),
+      ast.BoundPoint(ast.Date(2025, 12, 31), ast.midnight()),
+      ast.BoundPoint(ast.Date(2025, 1, 1), ast.midnight()),
     )
 
   with_bounds(s)
@@ -356,8 +371,8 @@ pub fn between_invalid_bounds_test() {
 pub fn between_invalid_no_bounds_test() {
   let s =
     ast.Between(
-      ast.BoundPoint(ast.Date(2025, 1, 1), None),
-      ast.BoundPoint(ast.Date(2025, 1, 1), None),
+      ast.BoundPoint(ast.Date(2025, 1, 1), ast.midnight()),
+      ast.BoundPoint(ast.Date(2025, 1, 1), ast.midnight()),
     )
 
   with_bounds(s)
@@ -369,8 +384,8 @@ pub fn between_invalid_no_bounds_test() {
 
 pub fn between_invalid_start_time_test() {
   with_bounds(ast.Between(
-    ast.BoundPoint(ast.Date(2025, 1, 1), Some(ast.Time(25, 0))),
-    ast.BoundPoint(ast.Date(2025, 12, 31), Some(ast.Time(17, 0))),
+    ast.BoundPoint(ast.Date(2025, 1, 1), ast.Time(25, 0)),
+    ast.BoundPoint(ast.Date(2025, 12, 31), ast.Time(17, 0)),
   ))
   |> validator.validate
   |> should.equal(Error(validator.InvalidTime("invalid time", ast.Time(25, 0))))
@@ -378,8 +393,8 @@ pub fn between_invalid_start_time_test() {
 
 pub fn between_invalid_end_time_test() {
   with_bounds(ast.Between(
-    ast.BoundPoint(ast.Date(2025, 1, 1), Some(ast.Time(9, 0))),
-    ast.BoundPoint(ast.Date(2025, 12, 31), Some(ast.Time(9, 60))),
+    ast.BoundPoint(ast.Date(2025, 1, 1), ast.Time(9, 0)),
+    ast.BoundPoint(ast.Date(2025, 12, 31), ast.Time(9, 60)),
   ))
   |> validator.validate
   |> should.equal(Error(validator.InvalidTime("invalid time", ast.Time(9, 60))))
@@ -388,8 +403,8 @@ pub fn between_invalid_end_time_test() {
 pub fn between_invalid_bounds_asymmetry_some_none_test() {
   let s =
     ast.Between(
-      ast.BoundPoint(ast.Date(2025, 1, 1), Some(ast.Time(0, 0))),
-      ast.BoundPoint(ast.Date(2025, 12, 31), None),
+      ast.BoundPoint(ast.Date(2025, 1, 1), ast.Time(0, 0)),
+      ast.BoundPoint(ast.Date(2025, 12, 31), ast.midnight()),
     )
   with_bounds(s)
   |> validator.validate
@@ -404,8 +419,8 @@ pub fn between_invalid_bounds_asymmetry_some_none_test() {
 pub fn between_invalid_bounds_asymmetry_none_some_test() {
   let s =
     ast.Between(
-      ast.BoundPoint(ast.Date(2025, 1, 1), None),
-      ast.BoundPoint(ast.Date(2025, 12, 31), Some(ast.Time(23, 59))),
+      ast.BoundPoint(ast.Date(2025, 1, 1), ast.midnight()),
+      ast.BoundPoint(ast.Date(2025, 12, 31), ast.Time(23, 59)),
     )
   with_bounds(s)
   |> validator.validate
@@ -420,12 +435,12 @@ pub fn between_invalid_bounds_asymmetry_none_some_test() {
 // --- Days: Weekdays / Weekends
 
 pub fn weekdays_is_valid_test() {
-  let s = with_days(ast.SpecificDays(days.weekdays()))
+  let s = with_days(ast.SpecificDays(ast.weekdays()))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
 pub fn weekends_is_valid_test() {
-  let s = with_days(ast.SpecificDays(days.weekend()))
+  let s = with_days(ast.SpecificDays(ast.weekend()))
   validator.validate(s) |> should.equal(Ok(s))
 }
 
@@ -643,12 +658,12 @@ pub fn except_time_invalid_time_in_at_test() {
 // --- Exclusions: ExceptDays
 
 pub fn except_days_weekdays_test() {
-  let s = with_exclusions([ast.ExceptDays(ast.SpecificDays(days.weekdays()))])
+  let s = with_exclusions([ast.ExceptDays(ast.SpecificDays(ast.weekdays()))])
   validator.validate(s) |> should.equal(Ok(s))
 }
 
 pub fn except_days_weekends_test() {
-  let s = with_exclusions([ast.ExceptDays(ast.SpecificDays(days.weekend()))])
+  let s = with_exclusions([ast.ExceptDays(ast.SpecificDays(ast.weekend()))])
   validator.validate(s) |> should.equal(Ok(s))
 }
 
@@ -714,7 +729,9 @@ pub fn except_days_ordinal_duplicate_is_invalid_test() {
 pub fn except_bounds_valid_starting_test() {
   let s =
     with_exclusions([
-      ast.ExceptBounds(ast.Starting(ast.BoundPoint(ast.Date(2025, 1, 1), None))),
+      ast.ExceptBounds(
+        ast.Starting(ast.BoundPoint(ast.Date(2025, 1, 1), ast.midnight())),
+      ),
     ])
   validator.validate(s) |> should.equal(Ok(s))
 }
@@ -723,8 +740,8 @@ pub fn except_bounds_valid_between_test() {
   let s =
     with_exclusions([
       ast.ExceptBounds(ast.Between(
-        ast.BoundPoint(ast.Date(2025, 1, 1), None),
-        ast.BoundPoint(ast.Date(2025, 12, 31), None),
+        ast.BoundPoint(ast.Date(2025, 1, 1), ast.midnight()),
+        ast.BoundPoint(ast.Date(2025, 12, 31), ast.midnight()),
       )),
     ])
   validator.validate(s) |> should.equal(Ok(s))
@@ -732,7 +749,9 @@ pub fn except_bounds_valid_between_test() {
 
 pub fn except_bounds_invalid_date_test() {
   with_exclusions([
-    ast.ExceptBounds(ast.Starting(ast.BoundPoint(ast.Date(2025, 13, 1), None))),
+    ast.ExceptBounds(
+      ast.Starting(ast.BoundPoint(ast.Date(2025, 13, 1), ast.midnight())),
+    ),
   ])
   |> validator.validate
   |> should.equal(
@@ -743,8 +762,8 @@ pub fn except_bounds_invalid_date_test() {
 pub fn except_bounds_end_before_start_is_invalid_test() {
   let bounds =
     ast.Between(
-      ast.BoundPoint(ast.Date(2025, 12, 31), None),
-      ast.BoundPoint(ast.Date(2025, 1, 1), None),
+      ast.BoundPoint(ast.Date(2025, 12, 31), ast.midnight()),
+      ast.BoundPoint(ast.Date(2025, 1, 1), ast.midnight()),
     )
   with_exclusions([ast.ExceptBounds(bounds)])
   |> validator.validate
@@ -756,8 +775,8 @@ pub fn except_bounds_end_before_start_is_invalid_test() {
 pub fn except_bounds_time_asymmetry_is_invalid_test() {
   let bounds =
     ast.Between(
-      ast.BoundPoint(ast.Date(2025, 1, 1), Some(ast.Time(9, 0))),
-      ast.BoundPoint(ast.Date(2025, 12, 31), None),
+      ast.BoundPoint(ast.Date(2025, 1, 1), ast.Time(9, 0)),
+      ast.BoundPoint(ast.Date(2025, 12, 31), ast.midnight()),
     )
   with_exclusions([ast.ExceptBounds(bounds)])
   |> validator.validate
@@ -783,15 +802,15 @@ pub fn empty_exclusions_list_is_invalid_test() {
 
 pub fn duplicate_except_days_is_invalid_test() {
   let exclusions = [
-    ast.ExceptDays(ast.SpecificDays(days.weekdays())),
-    ast.ExceptDays(ast.SpecificDays(days.weekdays())),
+    ast.ExceptDays(ast.SpecificDays(ast.weekdays())),
+    ast.ExceptDays(ast.SpecificDays(ast.weekdays())),
   ]
   with_exclusions(exclusions)
   |> validator.validate
   |> should.equal(
     Error(
       validator.InvalidExclusions("duplicate exclusions", [
-        ast.ExceptDays(ast.SpecificDays(days.weekdays())),
+        ast.ExceptDays(ast.SpecificDays(ast.weekdays())),
       ]),
     ),
   )
@@ -814,7 +833,7 @@ pub fn duplicate_except_time_is_invalid_test() {
 }
 
 pub fn duplicate_except_bounds_is_invalid_test() {
-  let bound = ast.Starting(ast.BoundPoint(ast.Date(2025, 1, 1), None))
+  let bound = ast.Starting(ast.BoundPoint(ast.Date(2025, 1, 1), ast.midnight()))
   let exclusions = [ast.ExceptBounds(bound), ast.ExceptBounds(bound)]
   with_exclusions(exclusions)
   |> validator.validate
@@ -830,8 +849,8 @@ pub fn duplicate_except_bounds_is_invalid_test() {
 pub fn different_exclusions_is_valid_test() {
   let s =
     with_exclusions([
-      ast.ExceptDays(ast.SpecificDays(days.weekdays())),
-      ast.ExceptDays(ast.SpecificDays(days.weekend())),
+      ast.ExceptDays(ast.SpecificDays(ast.weekdays())),
+      ast.ExceptDays(ast.SpecificDays(ast.weekend())),
     ])
   validator.validate(s) |> should.equal(Ok(s))
 }
@@ -839,7 +858,7 @@ pub fn different_exclusions_is_valid_test() {
 pub fn different_exclusion_types_is_valid_test() {
   let s =
     with_exclusions([
-      ast.ExceptDays(ast.SpecificDays(days.weekdays())),
+      ast.ExceptDays(ast.SpecificDays(ast.weekdays())),
       ast.ExceptTime(ast.At([ast.Time(9, 0)])),
     ])
   validator.validate(s) |> should.equal(Ok(s))
@@ -925,7 +944,7 @@ pub fn partial_overlap_not_subset_is_valid_test() {
 pub fn multiple_distinct_exclusions_test() {
   let s =
     with_exclusions([
-      ast.ExceptDays(ast.SpecificDays(days.weekend())),
+      ast.ExceptDays(ast.SpecificDays(ast.weekend())),
       ast.ExceptTime(ast.TimeRange(ast.Time(22, 0), ast.Time(6, 0))),
     ])
   validator.validate(s) |> should.equal(Ok(s))
@@ -934,9 +953,11 @@ pub fn multiple_distinct_exclusions_test() {
 pub fn three_distinct_exclusions_test() {
   let s =
     with_exclusions([
-      ast.ExceptDays(ast.SpecificDays(days.weekend())),
+      ast.ExceptDays(ast.SpecificDays(ast.weekend())),
       ast.ExceptTime(ast.At([ast.Time(12, 0)])),
-      ast.ExceptBounds(ast.Starting(ast.BoundPoint(ast.Date(2025, 6, 1), None))),
+      ast.ExceptBounds(
+        ast.Starting(ast.BoundPoint(ast.Date(2025, 6, 1), ast.midnight())),
+      ),
     ])
   validator.validate(s) |> should.equal(Ok(s))
 }

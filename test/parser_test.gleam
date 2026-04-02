@@ -1,7 +1,6 @@
 import gleam/option.{None, Some}
 import gleeunit/should
 import library/ast
-import library/ast/days
 import library/lexer
 import library/parser
 
@@ -26,9 +25,7 @@ fn daily(expr: String) -> String {
   "daily " <> expr
 }
 
-// ============================================================
-// OneOff: once on <date> at <time>
-// ============================================================
+// --- OneOff: once on <date> at <time>
 
 pub fn one_off_happy_path_test() {
   parse("once on 2024-01-15 at 09:30")
@@ -75,11 +72,9 @@ pub fn one_off_trailing_tokens_test() {
   )
 }
 
-// ============================================================
-// Frequency
+// --- Frequency
 // frequency_sugar := "hourly" | "daily" | "weekly" | "monthly" | "annually"
 // frequency       := "every" number unit | frequency_sugar
-// ============================================================
 
 pub fn frequency_sugar_hourly_test() {
   let assert ast.Recurring(..) as base = recurring()
@@ -303,9 +298,7 @@ pub fn frequency_missing_error_test() {
   )
 }
 
-// ============================================================
 // Timing: "at" time_list | "from" time "to" time
-// ============================================================
 
 pub fn timing_at_single_test() {
   let assert ast.Recurring(..) as base = recurring()
@@ -395,11 +388,9 @@ pub fn timing_from_to_no_end_time_error_test() {
   |> should.equal(Error(parser.InvalidTimeRange("expected time after `to`")))
 }
 
-// ============================================================
 // Days: "on" day_list | "on" day_group
 //       | "on" "the" bare_ordinal_list
 //       | "on" "the" qualified_ordinal_list
-// ============================================================
 
 pub fn days_weekdays_test() {
   let assert ast.Recurring(..) as base = recurring()
@@ -407,7 +398,7 @@ pub fn days_weekdays_test() {
   daily("on weekdays")
   |> parse()
   |> should.equal(Ok(
-    ast.Recurring(..base, days: Some(ast.SpecificDays(days.weekdays()))),
+    ast.Recurring(..base, days: Some(ast.SpecificDays(ast.weekdays()))),
   ))
 }
 
@@ -417,7 +408,7 @@ pub fn days_weekends_test() {
   daily("on weekends")
   |> parse()
   |> should.equal(Ok(
-    ast.Recurring(..base, days: Some(ast.SpecificDays(days.weekend()))),
+    ast.Recurring(..base, days: Some(ast.SpecificDays(ast.weekend()))),
   ))
 }
 
@@ -693,10 +684,8 @@ pub fn days_qualified_dangling_and_error_test() {
   |> should.equal(Error(parser.InvalidDays("expected ordinal after `and`")))
 }
 
-// ============================================================
-// Bounds
+// --- Bounds
 // bounds := "starting" date ("at" time)? ("until" date ("at" time)?)?
-// ============================================================
 
 pub fn bounds_starting_test() {
   let assert ast.Recurring(..) as base = recurring()
@@ -707,7 +696,10 @@ pub fn bounds_starting_test() {
     ast.Recurring(
       ..base,
       bounds: Some(
-        ast.Starting(ast.BoundPoint(date: ast.Date(2024, 1, 1), time: None)),
+        ast.Starting(ast.BoundPoint(
+          date: ast.Date(2024, 1, 1),
+          time: ast.midnight(),
+        )),
       ),
     ),
   ))
@@ -724,7 +716,7 @@ pub fn bounds_starting_with_time_test() {
       bounds: Some(
         ast.Starting(ast.BoundPoint(
           date: ast.Date(2024, 1, 1),
-          time: Some(ast.Time(9, 0)),
+          time: ast.Time(9, 0),
         )),
       ),
     ),
@@ -740,8 +732,8 @@ pub fn bounds_between_test() {
     ast.Recurring(
       ..base,
       bounds: Some(ast.Between(
-        from: ast.BoundPoint(date: ast.Date(2024, 1, 1), time: None),
-        to: ast.BoundPoint(date: ast.Date(2024, 12, 31), time: None),
+        from: ast.BoundPoint(date: ast.Date(2024, 1, 1), time: ast.midnight()),
+        to: ast.BoundPoint(date: ast.Date(2024, 12, 31), time: ast.midnight()),
       )),
     ),
   ))
@@ -756,14 +748,8 @@ pub fn bounds_between_both_times_test() {
     ast.Recurring(
       ..base,
       bounds: Some(ast.Between(
-        from: ast.BoundPoint(
-          date: ast.Date(2024, 1, 1),
-          time: Some(ast.Time(9, 0)),
-        ),
-        to: ast.BoundPoint(
-          date: ast.Date(2024, 12, 31),
-          time: Some(ast.Time(17, 0)),
-        ),
+        from: ast.BoundPoint(date: ast.Date(2024, 1, 1), time: ast.Time(9, 0)),
+        to: ast.BoundPoint(date: ast.Date(2024, 12, 31), time: ast.Time(17, 0)),
       )),
     ),
   ))
@@ -778,11 +764,8 @@ pub fn bounds_between_from_time_only_test() {
     ast.Recurring(
       ..base,
       bounds: Some(ast.Between(
-        from: ast.BoundPoint(
-          date: ast.Date(2024, 1, 1),
-          time: Some(ast.Time(9, 0)),
-        ),
-        to: ast.BoundPoint(date: ast.Date(2024, 12, 31), time: None),
+        from: ast.BoundPoint(date: ast.Date(2024, 1, 1), time: ast.Time(9, 0)),
+        to: ast.BoundPoint(date: ast.Date(2024, 12, 31), time: ast.midnight()),
       )),
     ),
   ))
@@ -797,11 +780,8 @@ pub fn bounds_between_to_time_only_test() {
     ast.Recurring(
       ..base,
       bounds: Some(ast.Between(
-        from: ast.BoundPoint(date: ast.Date(2024, 1, 1), time: None),
-        to: ast.BoundPoint(
-          date: ast.Date(2024, 12, 31),
-          time: Some(ast.Time(17, 0)),
-        ),
+        from: ast.BoundPoint(date: ast.Date(2024, 1, 1), time: ast.midnight()),
+        to: ast.BoundPoint(date: ast.Date(2024, 12, 31), time: ast.Time(17, 0)),
       )),
     ),
   ))
@@ -831,11 +811,9 @@ pub fn bounds_until_without_starting_error_test() {
   |> should.equal(Error(parser.InvalidBounds("expected date after `until`")))
 }
 
-// ============================================================
-// Exclusions
+// --- Exclusions
 // exclusion  := "except" on_clause | "except" time_clause | "except" bounds
 // exclusions := exclusion+
-// ============================================================
 
 pub fn exclusion_except_on_weekends_test() {
   let assert ast.Recurring(..) as base = recurring()
@@ -845,7 +823,7 @@ pub fn exclusion_except_on_weekends_test() {
   |> should.equal(Ok(
     ast.Recurring(
       ..base,
-      exclusions: Some([ast.ExceptDays(ast.SpecificDays(days.weekend()))]),
+      exclusions: Some([ast.ExceptDays(ast.SpecificDays(ast.weekend()))]),
     ),
   ))
 }
@@ -858,7 +836,7 @@ pub fn exclusion_except_on_weekdays_test() {
   |> should.equal(Ok(
     ast.Recurring(
       ..base,
-      exclusions: Some([ast.ExceptDays(ast.SpecificDays(days.weekdays()))]),
+      exclusions: Some([ast.ExceptDays(ast.SpecificDays(ast.weekdays()))]),
     ),
   ))
 }
@@ -944,7 +922,10 @@ pub fn exclusion_except_starting_test() {
       ..base,
       exclusions: Some([
         ast.ExceptBounds(
-          ast.Starting(ast.BoundPoint(date: ast.Date(2024, 6, 1), time: None)),
+          ast.Starting(ast.BoundPoint(
+            date: ast.Date(2024, 6, 1),
+            time: ast.midnight(),
+          )),
         ),
       ]),
     ),
@@ -961,8 +942,8 @@ pub fn exclusion_except_between_test() {
       ..base,
       exclusions: Some([
         ast.ExceptBounds(ast.Between(
-          from: ast.BoundPoint(date: ast.Date(2024, 6, 1), time: None),
-          to: ast.BoundPoint(date: ast.Date(2024, 6, 30), time: None),
+          from: ast.BoundPoint(date: ast.Date(2024, 6, 1), time: ast.midnight()),
+          to: ast.BoundPoint(date: ast.Date(2024, 6, 30), time: ast.midnight()),
         )),
       ]),
     ),
@@ -978,7 +959,7 @@ pub fn exclusion_multiple_test() {
     ast.Recurring(
       ..base,
       exclusions: Some([
-        ast.ExceptDays(ast.SpecificDays(days.weekend())),
+        ast.ExceptDays(ast.SpecificDays(ast.weekend())),
         ast.ExceptTime(ast.TimeRange(from: ast.Time(22, 0), to: ast.Time(6, 0))),
       ]),
     ),
@@ -994,7 +975,7 @@ pub fn exclusion_multiple_three_test() {
     ast.Recurring(
       ..base,
       exclusions: Some([
-        ast.ExceptDays(ast.SpecificDays(days.weekend())),
+        ast.ExceptDays(ast.SpecificDays(ast.weekend())),
         ast.ExceptTime(ast.TimeRange(from: ast.Time(22, 0), to: ast.Time(6, 0))),
         ast.ExceptDays(ast.BareOrdinalDays([ast.DayOfMonth(1)])),
       ]),
@@ -1010,10 +991,8 @@ pub fn exclusion_except_nothing_error_test() {
   )
 }
 
-// ============================================================
-// Full schedules
+// --- Full schedules
 // schedule := frequency time_clause? on_clause? bounds? exclusions?
-// ============================================================
 
 pub fn full_schedule_freq_and_days_test() {
   parse("every 5 minutes on weekdays")
@@ -1021,7 +1000,7 @@ pub fn full_schedule_freq_and_days_test() {
     Ok(ast.Recurring(
       frequency: ast.Every(5, ast.Minutes),
       timing: None,
-      days: Some(ast.SpecificDays(days.weekdays())),
+      days: Some(ast.SpecificDays(ast.weekdays())),
       bounds: None,
       exclusions: None,
     )),
@@ -1034,7 +1013,7 @@ pub fn full_schedule_freq_timing_days_test() {
     Ok(ast.Recurring(
       frequency: ast.Every(1, ast.Days),
       timing: Some(ast.At([ast.Time(9, 0)])),
-      days: Some(ast.SpecificDays(days.weekdays())),
+      days: Some(ast.SpecificDays(ast.weekdays())),
       bounds: None,
       exclusions: None,
     )),
@@ -1049,7 +1028,10 @@ pub fn full_schedule_daily_at_starting_test() {
       timing: Some(ast.At([ast.Time(9, 0)])),
       days: None,
       bounds: Some(
-        ast.Starting(ast.BoundPoint(date: ast.Date(2024, 1, 1), time: None)),
+        ast.Starting(ast.BoundPoint(
+          date: ast.Date(2024, 1, 1),
+          time: ast.midnight(),
+        )),
       ),
       exclusions: None,
     )),
@@ -1062,7 +1044,7 @@ pub fn full_schedule_freq_days_exclusion_test() {
     Ok(ast.Recurring(
       frequency: ast.Every(30, ast.Minutes),
       timing: None,
-      days: Some(ast.SpecificDays(days.weekdays())),
+      days: Some(ast.SpecificDays(ast.weekdays())),
       bounds: None,
       exclusions: Some([ast.ExceptDays(ast.SpecificDays([ast.Fri]))]),
     )),
@@ -1075,10 +1057,10 @@ pub fn full_schedule_all_clauses_test() {
     Ok(ast.Recurring(
       frequency: ast.Every(1, ast.Days),
       timing: Some(ast.At([ast.Time(9, 0)])),
-      days: Some(ast.SpecificDays(days.weekdays())),
+      days: Some(ast.SpecificDays(ast.weekdays())),
       bounds: Some(ast.Between(
-        from: ast.BoundPoint(date: ast.Date(2024, 1, 1), time: None),
-        to: ast.BoundPoint(date: ast.Date(2024, 12, 31), time: None),
+        from: ast.BoundPoint(date: ast.Date(2024, 1, 1), time: ast.midnight()),
+        to: ast.BoundPoint(date: ast.Date(2024, 12, 31), time: ast.midnight()),
       )),
       exclusions: None,
     )),
@@ -1091,16 +1073,14 @@ pub fn full_schedule_hourly_from_to_on_weekdays_test() {
     Ok(ast.Recurring(
       frequency: ast.Every(1, ast.Hours),
       timing: Some(ast.TimeRange(from: ast.Time(9, 0), to: ast.Time(17, 0))),
-      days: Some(ast.SpecificDays(days.weekdays())),
+      days: Some(ast.SpecificDays(ast.weekdays())),
       bounds: None,
       exclusions: None,
     )),
   )
 }
 
-// ============================================================
-// Edge cases
-// ============================================================
+// --- Edge cases
 
 pub fn empty_input_error_test() {
   parse("")
