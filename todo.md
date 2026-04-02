@@ -33,14 +33,13 @@
 - [x] all individual timing rules carry forward
       (validate hours/minutes, At: no duplicate times,
        TimeRange: from != to)
-- [ ] reject mixing time ranges and time lists across exclusions
 - [ ] reject time exclusion that is a strict subset of another time exclusion
       (e.g. "except at 09:00" is redundant alongside "except from 08:00 to 10:00")
 
 ### ExceptBounds
 - [x] all individual bounds rules carry forward
       (validate dates, validate times, Between: start before end)
-- [ ] reject bounds exclusion that is a strict subset of another bounds exclusion
+- [x] reject bounds exclusion that is a strict subset of another bounds exclusion
       (e.g. a date range fully inside another date range)
 
 ## cross-clause (incomplete)

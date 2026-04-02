@@ -5,13 +5,13 @@ import library/overlap
 
 // import gleam/io
 import gleam/list
-import gleam/option.{Some}
 import gleam/order
 import gleam/result
 import gleam/string
 import library/ast
+import library/ast/bounds
 import library/ast/days
-import library/utils.{find_duplicates, guard, option_try, options_symmetric}
+import library/utils.{find_duplicates, guard, option_try}
 
 pub type ValidatorError {
   InvalidFrequency(String, ast.Frequency)
@@ -28,6 +28,7 @@ pub type ValidatorError {
   InvalidExclusions(String, List(ast.Exclusion))
   InvalidExclusionsDays(String)
   InvalidExclusionsTime(String)
+  InvalidExclusionsBounds(String)
   InExclusion(ast.Exclusion, ValidatorError)
 }
 
@@ -331,7 +332,7 @@ pub fn validate_exclusions(
         InExclusion(ast.ExceptTime(timing), err)
       })
 
-      // todo: bounds overlap
+      use _ <- result.try(handle_bounds_simple_overlap(exclusions_bounds))
 
       use _ <- result.try({
         use bounds <- list.try_each(exclusions_bounds)
@@ -414,4 +415,31 @@ fn handle_time_range_simple_overlap(
   )
 
   Ok(timings)
+}
+
+fn handle_bounds_simple_overlap(
+  bounds_list: List(ast.Bounds),
+) -> Result(List(ast.Bounds), ValidatorError) {
+  use _ <- result.try(
+    bounds_list
+    |> list.combination_pairs
+    |> list.try_each(fn(p) {
+      case bounds.overlap_with(p.0, p.1) {
+        Ok(overlap.Subset(a, b)) -> {
+          Error(InvalidExclusionsBounds(
+            string.inspect(a) <> " is contained within " <> string.inspect(b),
+          ))
+        }
+        Ok(overlap.Intersection(_, _, _)) -> {
+          // todo: make this a warning later on
+          Ok(Nil)
+        }
+        Ok(overlap.Disjoint) -> Ok(Nil)
+        // bounds.overlap_with is total, so this shouldn't happen
+        Error(_) -> Ok(Nil)
+      }
+    }),
+  )
+
+  Ok(bounds_list)
 }
