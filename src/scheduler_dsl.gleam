@@ -1,3 +1,4 @@
+import library/ast
 import library/utils
 import library/validator
 
@@ -38,20 +39,22 @@ pub fn main() {
   let res =
     validator.validate_exclusions([
       // Qualified Ordinals
-    //
-    //   ast.ExceptDays(
-    //     ast.QualifiedOrdinalDays([ast.NthWeekday(ast.First, ast.Mon)]),
-    //   ),
-    //   ast.ExceptDays(
-    //     ast.QualifiedOrdinalDays([
-    //       ast.NthWeekday(ast.First, ast.Mon),
-    //       ast.NthWeekday(ast.Last, ast.Mon),
-    //     ]),
-    //   ),
-    //   ast.ExceptDays(
-    //     ast.QualifiedOrdinalDays([ast.NthWeekday(ast.Last, ast.Mon)]),
-    //   ),
-    //
+      ast.ExceptDays(
+        ast.QualifiedOrdinalDays([
+          ast.NthWeekday(ast.First, ast.Mon),
+          ast.NthWeekday(ast.First, ast.Mon),
+        ]),
+      ),
+      ast.ExceptDays(
+        ast.QualifiedOrdinalDays([
+          ast.NthWeekday(ast.First, ast.Mon),
+          ast.NthWeekday(ast.Last, ast.Mon),
+        ]),
+      ),
+      ast.ExceptDays(
+        ast.QualifiedOrdinalDays([ast.NthWeekday(ast.Last, ast.Mon)]),
+      ),
+      //
     // Bare Ordinals
     //
     // ast.ExceptDays(ast.BareOrdinalDays([ast.DayOfMonth(1)])),
