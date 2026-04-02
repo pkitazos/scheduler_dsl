@@ -1,4 +1,7 @@
+import gleam/int
+import gleam/list
 import gleam/option.{type Option}
+import gleam/order
 import library/ast/multiset
 
 /// complete schedule expression
@@ -50,6 +53,93 @@ pub fn eq_days(a: Days, b: Days) -> Bool {
 
     QualifiedOrdinalDays(xs), QualifiedOrdinalDays(ys) -> multiset.eq(xs, ys)
     QualifiedOrdinalDays(_), _ -> False
+  }
+}
+
+pub fn hash_days(a: Days) -> Days {
+  case a {
+    SpecificDays(xs) -> xs |> list.sort(sort_days_of_week) |> SpecificDays()
+
+    BareOrdinalDays(xs) ->
+      xs |> list.sort(sort_bare_ordinal_days) |> BareOrdinalDays()
+
+    QualifiedOrdinalDays(xs) ->
+      xs |> list.sort(sort_qualified_ordinal_days) |> QualifiedOrdinalDays()
+  }
+}
+
+/// Comparator for sorting days of the week in calendar order (Mon > Tue > ... > Sun).
+pub fn sort_days_of_week(a: DayOfWeek, b: DayOfWeek) -> order.Order {
+  case a, b {
+    Mon, Mon -> order.Eq
+    Mon, _ -> order.Gt
+
+    Tue, Mon -> order.Lt
+    Tue, Tue -> order.Eq
+    Tue, _ -> order.Gt
+
+    Wed, Mon | Wed, Tue -> order.Lt
+    Wed, Wed -> order.Eq
+    Wed, _ -> order.Gt
+
+    Thu, Mon | Thu, Tue | Thu, Wed -> order.Lt
+    Thu, Thu -> order.Eq
+    Thu, _ -> order.Gt
+
+    Fri, Mon | Fri, Tue | Fri, Wed | Fri, Thu -> order.Lt
+    Fri, Fri -> order.Eq
+    Fri, _ -> order.Gt
+
+    Sat, Sun -> order.Gt
+    Sat, Sat -> order.Eq
+    Sat, _ -> order.Lt
+
+    Sun, Sun -> order.Eq
+    Sun, _ -> order.Lt
+  }
+}
+
+pub fn sort_bare_ordinal_days(a: Ordinal, b: Ordinal) -> order.Order {
+  case a, b {
+    DayOfMonth(x), DayOfMonth(y) -> int.compare(x, y)
+    DayOfMonth(_), LastDay -> order.Gt
+    LastDay, _ -> order.Lt
+  }
+}
+
+pub fn sort_qualified_ordinal_days(a: NthWeekday, b: NthWeekday) -> order.Order {
+  let NthWeekday(pos1, week_day1) = a
+  let NthWeekday(pos2, week_day2) = b
+
+  case sort_position(pos1, pos2) {
+    order.Eq -> sort_days_of_week(week_day1, week_day2)
+    order -> order
+  }
+}
+
+fn sort_position(a: Position, b: Position) -> order.Order {
+  case a, b {
+    First, First -> order.Eq
+    First, _ -> order.Lt
+
+    Second, First -> order.Gt
+    Second, Second -> order.Eq
+    Second, _ -> order.Lt
+
+    Third, First | Third, Second -> order.Gt
+    Third, Third -> order.Eq
+    Third, _ -> order.Lt
+
+    Fourth, Fifth | Fourth, Last -> order.Lt
+    Fourth, Fourth -> order.Eq
+    Fourth, _ -> order.Gt
+
+    Fifth, Last -> order.Lt
+    Fifth, Fifth -> order.Eq
+    Fifth, _ -> order.Gt
+
+    Last, Last -> order.Eq
+    Last, _ -> order.Gt
   }
 }
 

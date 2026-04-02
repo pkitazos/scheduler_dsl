@@ -1,4 +1,6 @@
 import gleam/int
+
+// import gleam/io
 import gleam/list
 import gleam/option.{Some}
 import gleam/order
@@ -7,12 +9,6 @@ import gleam/string
 import library/ast
 import library/ast/days
 import library/utils.{find_duplicates, guard, option_try, options_symmetric}
-
-// - [/] frequency
-// - [/] timing
-// - [/] days
-// - [/] bounds
-// - [ ] exclusion
 
 pub type ValidatorError {
   InvalidFrequency(String, ast.Frequency)
@@ -28,6 +24,7 @@ pub type ValidatorError {
   InvalidQualifiedOrdinalDays(String, List(ast.NthWeekday))
   InvalidExclusions(String, List(ast.Exclusion))
   InvalidExclusionsDays(String)
+  InExclusion(ast.Exclusion, ValidatorError)
 }
 
 pub fn validate(schedule: ast.Schedule) -> Result(ast.Schedule, ValidatorError) {
@@ -92,7 +89,7 @@ fn validate_timing(timing: ast.Timing) -> Result(ast.Timing, ValidatorError) {
   }
 }
 
-fn validate_days(days: ast.Days) -> Result(ast.Days, ValidatorError) {
+pub fn validate_days(days: ast.Days) -> Result(ast.Days, ValidatorError) {
   case days {
     ast.SpecificDays([]) -> Error(InvalidDaysOfWeek("empty list", []))
 
@@ -113,23 +110,6 @@ fn validate_days(days: ast.Days) -> Result(ast.Days, ValidatorError) {
         }),
       )
 
-      use _ <- result.try(case ordinals {
-        [x, ..xs] -> {
-          xs
-          |> list.try_fold(x, fn(acc, val) {
-            case acc, val {
-              ast.DayOfMonth(_), ast.DayOfMonth(_)
-              | ast.DayOfMonth(_), ast.LastDay
-              | ast.LastDay, ast.LastDay
-              | ast.LastDay, ast.DayOfMonth(_)
-              -> Ok(acc)
-            }
-          })
-        }
-
-        [] -> Error(InvalidOrdinalDays("empty list", []))
-      })
-
       use _ordinals <- result.try(
         list.try_map(ordinals, fn(o) {
           case o {
@@ -143,11 +123,18 @@ fn validate_days(days: ast.Days) -> Result(ast.Days, ValidatorError) {
       Ok(days)
     }
 
-    ast.QualifiedOrdinalDays(_) -> panic
+    ast.QualifiedOrdinalDays(qualified_weekdays) -> {
+      use _days_of_week <- result.try(
+        no_duplicates(qualified_weekdays, fn(dups) {
+          InvalidQualifiedOrdinalDays("duplicate qualified weekdays", dups)
+        }),
+      )
+
+      Ok(days)
+    }
   }
 }
 
-// todo: check call sites, it's possible that two equivalent multisets of AST nodes are not treated as the
 fn no_duplicates(xs: List(a), err_f: fn(List(a)) -> b) -> Result(List(a), b) {
   case find_duplicates(xs) {
     [] -> Ok(xs)
@@ -273,48 +260,59 @@ pub fn validate_exclusions(
     [] -> Error(InvalidExclusions("empty list", []))
     xs -> {
       use _ <- result.try(
+        // this is the one where hashing would be required
         no_duplicates(xs, fn(dups) {
           InvalidExclusions("duplicate exclusions", dups)
         }),
       )
 
-      use _ <- result.try(
-        xs
-        |> list.filter_map(fn(x) {
+      let exclusions_days_list =
+        list.filter_map(xs, fn(x) {
           case x {
             ast.ExceptDays(ys) -> Ok(ys)
             _ -> Error(Nil)
           }
         })
-        |> handle_day_list_simple_overlap,
-      )
 
-      // for now we just discard the times and bounds cause we're only working on the days validation
-
-      let _times =
+      let exclusions_timing =
         list.filter_map(xs, fn(x) {
           case x {
             ast.ExceptTime(ys) -> Ok(ys)
             _ -> Error(Nil)
           }
         })
-      // then I would follow the same pattern her
 
-      let _bounds =
+      let exclusions_bounds =
         list.filter_map(xs, fn(x) {
           case x {
             ast.ExceptBounds(ys) -> Ok(ys)
             _ -> Error(Nil)
           }
         })
-      // and here
-      // where I would create a pipeline of the different kinds of validations
-      // I already have well defined rules that should be enforced for `time` and `bounds`
-      // it's just a matter of creating the proper pipeline functions
 
-      // then finally, when all the pipelines are in place, I would probably hae to convert them into `use` expressions
-      // and then I can just return `Ok(exclusions)` like I'm doing here and any `Error`s returned by the pipelines
-      // would short-circuit the function and return
+      use _ <- result.try(handle_day_list_simple_overlap(exclusions_days_list))
+
+      use _ <- result.try({
+        use days <- list.try_each(exclusions_days_list)
+        use err <- result.map_error(validate_days(days))
+        InExclusion(ast.ExceptDays(days), err)
+      })
+
+      // todo: timing overlap
+
+      use _ <- result.try({
+        use timing <- list.try_each(exclusions_timing)
+        use err <- result.map_error(validate_timing(timing))
+        InExclusion(ast.ExceptTime(timing), err)
+      })
+
+      // todo: bounds overlap
+
+      use _ <- result.try({
+        use bounds <- list.try_each(exclusions_bounds)
+        use err <- result.map_error(validate_bounds(bounds))
+        InExclusion(ast.ExceptBounds(bounds), err)
+      })
 
       Ok(exclusions)
     }
