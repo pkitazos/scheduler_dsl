@@ -1,5 +1,7 @@
 import gleam/function.{identity as id}
 import gleam/int
+import library/ast/timing
+import library/overlap
 
 // import gleam/io
 import gleam/list
@@ -25,6 +27,7 @@ pub type ValidatorError {
   InvalidQualifiedOrdinalDays(String, List(ast.NthWeekday))
   InvalidExclusions(String, List(ast.Exclusion))
   InvalidExclusionsDays(String)
+  InvalidExclusionsTime(String)
   InExclusion(ast.Exclusion, ValidatorError)
 }
 
@@ -156,7 +159,7 @@ fn validate_bounds(bounds: ast.Bounds) -> Result(ast.Bounds, ValidatorError) {
         InvalidDate("invalid date", date),
       ))
 
-      use _time <- result.try(option_try(time, validate_time_result))
+      use _time <- result.try(validate_time_result(time))
       Ok(bounds)
     }
 
@@ -170,7 +173,7 @@ fn validate_bounds(bounds: ast.Bounds) -> Result(ast.Bounds, ValidatorError) {
         InvalidDate("invalid date", start_date),
       ))
 
-      use start_time <- result.try(option_try(start_time, validate_time_result))
+      use start_time <- result.try(validate_time_result(start_time))
 
       use end_date <- result.try(guard(
         end_date,
@@ -178,13 +181,13 @@ fn validate_bounds(bounds: ast.Bounds) -> Result(ast.Bounds, ValidatorError) {
         InvalidDate("invalid date", end_date),
       ))
 
-      use end_time <- result.try(option_try(end_time, validate_time_result))
+      use end_time <- result.try(validate_time_result(end_time))
 
-      use _ <- result.try(options_symmetric(
-        start_time,
-        end_time,
-        InvalidBounds("both bounds must have times or neither should", bounds),
-      ))
+      // use _ <- result.try(options_symmetric(
+      //   start_time,
+      //   end_time,
+      //   InvalidBounds("both bounds must have times or neither should", bounds),
+      // ))
 
       let start = ast.BoundPoint(start_date, start_time)
       let end = ast.BoundPoint(end_date, end_time)
@@ -212,13 +215,9 @@ fn date_cmp(d1: ast.Date, d2: ast.Date) -> order.Order {
 fn bound_point_cmp(b1: ast.BoundPoint, b2: ast.BoundPoint) -> order.Order {
   case date_cmp(b1.date, b2.date) {
     order.Eq ->
-      case b1.time, b2.time {
-        Some(t1), Some(t2) ->
-          case int.compare(t1.hour, t2.hour) {
-            order.Eq -> int.compare(t1.minute, t2.minute)
-            ord -> ord
-          }
-        _, _ -> order.Eq
+      case int.compare(b1.time.hour, b2.time.hour) {
+        order.Eq -> int.compare(b1.time.minute, b2.time.minute)
+        ord -> ord
       }
     ord -> ord
   }
@@ -304,6 +303,28 @@ pub fn validate_exclusions(
 
       // todo: timing overlap
 
+      // so let's say a schedule uses a time list like:
+      //
+      //  At(00:00, 06:00, 07:30)
+      //
+      // and an exclusion says something like:
+      //
+      //  (a) Except(10:00)
+      //  (b) Except(from: 7:00, to: 08:00)
+      //
+      // - The first clause is pointless (and should be flagged in the cross-clause validation)
+      // - The second clause actually does something.
+      //
+      // In my earlier notes I said that I should not allow mixing the two, but actually why not?
+      // I mean it's a bit silly to allow this in the proper schedule, but in the negation where we
+      // are just poking wholes, totally fine.
+      // All our validation should do is check two things:
+      // 1) does the exclusion not target anything? (a)
+      // 2) does the exclusion cancel the entire schedule? e.g `Except(from: 00:00, to: 07:30)`
+      // 3) does one exclusion (time range) completely contain another? (subset)
+      // 4) does one exclusion (time range) partially overlap with another? (intersection)
+      use _ <- result.try(handle_time_range_simple_overlap(exclusions_timing))
+
       use _ <- result.try({
         use timing <- list.try_each(exclusions_timing)
         use err <- result.map_error(validate_timing(timing))
@@ -331,16 +352,16 @@ fn handle_day_list_simple_overlap(
     |> list.combination_pairs
     |> list.try_each(fn(p) {
       case days.overlap_with(p.0, p.1) {
-        Ok(days.Subset(a, b)) -> {
+        Ok(overlap.Subset(a, b)) -> {
           Error(InvalidExclusionsDays(
             string.inspect(a) <> " is contained within " <> string.inspect(b),
           ))
         }
-        Ok(days.Intersection(_, _, _)) -> {
+        Ok(overlap.Intersection(_, _, _)) -> {
           // todo: make this a warning later on
           Ok(Nil)
         }
-        Ok(days.Disjoint) -> {
+        Ok(overlap.Disjoint) -> {
           // genuinely no overlap, this one is fine to pass through
           Ok(Nil)
         }
@@ -366,4 +387,31 @@ fn handle_day_list_simple_overlap(
   // validation has confirmed all exclusions are individually sound.
   // Related: if the minimal set covers all 7 days, that's equivalent to
   // "every day" which might warrant a cross-clause warning.
+}
+
+fn handle_time_range_simple_overlap(
+  timings: List(ast.Timing),
+) -> Result(List(ast.Timing), ValidatorError) {
+  use _ <- result.try(
+    timings
+    |> list.combination_pairs
+    |> list.try_each(fn(p) {
+      case timing.overlap_with(p.0, p.1) {
+        Ok(overlap.Subset(a, b)) -> {
+          Error(InvalidExclusionsTime(
+            string.inspect(a) <> " is contained within " <> string.inspect(b),
+          ))
+        }
+        Ok(overlap.Intersection(_, _, _)) -> {
+          // todo: make this a warning later on
+          Ok(Nil)
+        }
+        Ok(overlap.Disjoint) -> Ok(Nil)
+        // mismatched variants (At vs TimeRange) - no overlap to check
+        Error(_) -> Ok(Nil)
+      }
+    }),
+  )
+
+  Ok(timings)
 }
