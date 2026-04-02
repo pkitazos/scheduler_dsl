@@ -35,10 +35,10 @@ pub fn options_symmetric(a: Option(a), b: Option(b), err: e) -> Result(Nil, e) {
 }
 
 /// Returns elements that appear multiple times in a list
-pub fn find_duplicates(xs: List(a)) -> List(a) {
+pub fn find_duplicates(xs: List(a), normal_f: fn(a) -> a) -> List(a) {
   xs
   |> list.fold(dict.new(), fn(acc, x) {
-    dict.upsert(acc, x, fn(count) { option.unwrap(count, 0) + 1 })
+    dict.upsert(acc, normal_f(x), fn(count) { option.unwrap(count, 0) + 1 })
   })
   |> dict.filter(fn(_, value) { value > 1 })
   |> dict.keys

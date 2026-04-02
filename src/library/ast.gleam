@@ -56,7 +56,7 @@ pub fn eq_days(a: Days, b: Days) -> Bool {
   }
 }
 
-pub fn hash_days(a: Days) -> Days {
+pub fn normalise_days(a: Days) -> Days {
   case a {
     SpecificDays(xs) -> xs |> list.sort(sort_days_of_week) |> SpecificDays()
 
@@ -186,6 +186,23 @@ pub fn eq_times(a: Timing, b: Timing) -> Bool {
   }
 }
 
+pub fn normalise_times(a: Timing) -> Timing {
+  case a {
+    At(times) -> At(list.sort(times, sort_times))
+    time_range -> time_range
+  }
+}
+
+pub fn sort_times(a: Time, b: Time) -> order.Order {
+  let Time(h1, m1) = a
+  let Time(h2, m2) = b
+
+  case int.compare(h1, h2) {
+    order.Eq -> int.compare(m1, m2)
+    order -> order
+  }
+}
+
 /// Date and optional time "2024-01-01 at 09:00" or "2024-01-01"
 pub type BoundPoint {
   BoundPoint(date: Date, time: Option(Time))
@@ -207,4 +224,12 @@ pub type Exclusion {
   ExceptDays(Days)
   ExceptTime(Timing)
   ExceptBounds(Bounds)
+}
+
+pub fn normalise_exclusion(a: Exclusion) -> Exclusion {
+  case a {
+    ExceptDays(days) -> ExceptDays(normalise_days(days))
+    ExceptTime(timing) -> ExceptTime(normalise_times(timing))
+    _ -> a
+  }
 }

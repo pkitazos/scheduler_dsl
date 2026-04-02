@@ -42,6 +42,11 @@ pub fn main() {
       ast.ExceptDays(
         ast.QualifiedOrdinalDays([
           ast.NthWeekday(ast.First, ast.Mon),
+        ]),
+      ),
+      ast.ExceptDays(
+        ast.QualifiedOrdinalDays([
+          ast.NthWeekday(ast.Last, ast.Mon),
           ast.NthWeekday(ast.First, ast.Mon),
         ]),
       ),

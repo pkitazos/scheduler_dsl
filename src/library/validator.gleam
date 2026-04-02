@@ -1,3 +1,4 @@
+import gleam/function.{identity as id}
 import gleam/int
 
 // import gleam/io
@@ -79,7 +80,7 @@ fn validate_timing(timing: ast.Timing) -> Result(ast.Timing, ValidatorError) {
       use _times <- result.try(list.try_map(times, validate_time_result))
 
       use _times <- result.try(
-        no_duplicates(times, fn(dups) {
+        no_duplicates(times, id, fn(dups) {
           InvalidTimeList("invalid time list, contains duplicates", dups)
         }),
       )
@@ -95,7 +96,7 @@ pub fn validate_days(days: ast.Days) -> Result(ast.Days, ValidatorError) {
 
     ast.SpecificDays(days_of_week) -> {
       use _days_of_week <- result.try(
-        no_duplicates(days_of_week, fn(dups) {
+        no_duplicates(days_of_week, id, fn(dups) {
           InvalidDaysOfWeek("duplicate days of week", dups)
         }),
       )
@@ -105,7 +106,7 @@ pub fn validate_days(days: ast.Days) -> Result(ast.Days, ValidatorError) {
 
     ast.BareOrdinalDays(ordinals) -> {
       use _ordinals <- result.try(
-        no_duplicates(ordinals, fn(dups) {
+        no_duplicates(ordinals, id, fn(dups) {
           InvalidOrdinalDays("duplicate ordinal days", dups)
         }),
       )
@@ -125,7 +126,7 @@ pub fn validate_days(days: ast.Days) -> Result(ast.Days, ValidatorError) {
 
     ast.QualifiedOrdinalDays(qualified_weekdays) -> {
       use _days_of_week <- result.try(
-        no_duplicates(qualified_weekdays, fn(dups) {
+        no_duplicates(qualified_weekdays, id, fn(dups) {
           InvalidQualifiedOrdinalDays("duplicate qualified weekdays", dups)
         }),
       )
@@ -135,8 +136,12 @@ pub fn validate_days(days: ast.Days) -> Result(ast.Days, ValidatorError) {
   }
 }
 
-fn no_duplicates(xs: List(a), err_f: fn(List(a)) -> b) -> Result(List(a), b) {
-  case find_duplicates(xs) {
+fn no_duplicates(
+  xs: List(a),
+  normal_f: fn(a) -> a,
+  err_f: fn(List(a)) -> b,
+) -> Result(List(a), b) {
+  case find_duplicates(xs, normal_f) {
     [] -> Ok(xs)
     dups -> Error(err_f(dups))
   }
@@ -260,8 +265,7 @@ pub fn validate_exclusions(
     [] -> Error(InvalidExclusions("empty list", []))
     xs -> {
       use _ <- result.try(
-        // this is the one where hashing would be required
-        no_duplicates(xs, fn(dups) {
+        no_duplicates(xs, ast.normalise_exclusion, fn(dups) {
           InvalidExclusions("duplicate exclusions", dups)
         }),
       )
