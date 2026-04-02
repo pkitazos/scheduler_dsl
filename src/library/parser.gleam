@@ -6,7 +6,6 @@ import library/ast.{
   type DayOfWeek, type Days, type Exclusion, type Frequency, type NthWeekday,
   type Ordinal, type Position, type Schedule, type Time, type Timing,
 }
-import library/ast/days
 
 import library/token.{type Token}
 
@@ -248,10 +247,10 @@ fn parse_days(
 ) -> Result(#(Option(Days), List(Token)), ParseError) {
   case tokens {
     [token.On, token.Weekdays, ..rest] ->
-      Ok(#(Some(ast.SpecificDays(days.weekdays())), rest))
+      Ok(#(Some(ast.SpecificDays(ast.weekdays())), rest))
 
     [token.On, token.Weekends, ..rest] ->
-      Ok(#(Some(ast.SpecificDays(days.weekend())), rest))
+      Ok(#(Some(ast.SpecificDays(ast.weekend())), rest))
 
     [token.On, token.The, token.Ordinal(n), ..rest] -> {
       use #(rest_days, rest2) <- result.try(parse_bare_ord_day_list(rest))
@@ -425,11 +424,11 @@ fn parse_bounds(
         Some(ast.Between(
           from: ast.BoundPoint(
             date: ast.Date(year: year1, month: month1, day: day1),
-            time: Some(ast.Time(hour: hour1, minute: minute1)),
+            time: ast.Time(hour: hour1, minute: minute1),
           ),
           to: ast.BoundPoint(
             date: ast.Date(year: year2, month: month2, day: day2),
-            time: Some(ast.Time(hour: hour2, minute: minute2)),
+            time: ast.Time(hour: hour2, minute: minute2),
           ),
         )),
         rest,
@@ -449,11 +448,11 @@ fn parse_bounds(
         Some(ast.Between(
           from: ast.BoundPoint(
             date: ast.Date(year: year1, month: month1, day: day1),
-            time: Some(ast.Time(hour: hour1, minute: minute1)),
+            time: ast.Time(hour: hour1, minute: minute1),
           ),
           to: ast.BoundPoint(
             date: ast.Date(year: year2, month: month2, day: day2),
-            time: None,
+            time: ast.midnight(),
           ),
         )),
         rest,
@@ -473,11 +472,11 @@ fn parse_bounds(
         Some(ast.Between(
           from: ast.BoundPoint(
             date: ast.Date(year: year1, month: month1, day: day1),
-            time: None,
+            time: ast.midnight(),
           ),
           to: ast.BoundPoint(
             date: ast.Date(year: year2, month: month2, day: day2),
-            time: Some(ast.Time(hour: hour2, minute: minute2)),
+            time: ast.Time(hour: hour2, minute: minute2),
           ),
         )),
         rest,
@@ -495,11 +494,11 @@ fn parse_bounds(
         Some(ast.Between(
           from: ast.BoundPoint(
             date: ast.Date(year: year1, month: month1, day: day1),
-            time: None,
+            time: ast.midnight(),
           ),
           to: ast.BoundPoint(
             date: ast.Date(year: year2, month: month2, day: day2),
-            time: None,
+            time: ast.midnight(),
           ),
         )),
         rest,
@@ -529,7 +528,7 @@ fn parse_bounds(
         Some(
           ast.Starting(ast.BoundPoint(
             date: ast.Date(year: year, month: month, day: day),
-            time: Some(ast.Time(hour: hour, minute: minute)),
+            time: ast.Time(hour: hour, minute: minute),
           )),
         ),
         rest,
@@ -541,7 +540,7 @@ fn parse_bounds(
         Some(
           ast.Starting(ast.BoundPoint(
             date: ast.Date(year: year, month: month, day: day),
-            time: None,
+            time: ast.midnight(),
           )),
         ),
         rest,

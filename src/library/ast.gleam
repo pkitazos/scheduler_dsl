@@ -36,11 +36,30 @@ pub type Time {
   Time(hour: Int, minute: Int)
 }
 
+pub fn compare_time(a: Time, b: Time) -> order.Order {
+  case int.compare(a.hour, b.hour) {
+    order.Eq -> int.compare(a.minute, b.minute)
+    order -> order
+  }
+}
+
+pub fn midnight() -> Time {
+  Time(0, 0)
+}
+
 /// "on monday", "on weekdays", "on the 1st", etc.
 pub type Days {
   SpecificDays(List(DayOfWeek))
   BareOrdinalDays(List(Ordinal))
   QualifiedOrdinalDays(List(NthWeekday))
+}
+
+pub fn weekdays() {
+  [Mon, Tue, Wed, Thu, Fri]
+}
+
+pub fn weekend() {
+  [Sat, Sun]
 }
 
 pub fn eq_days(a: Days, b: Days) -> Bool {
@@ -188,29 +207,34 @@ pub fn eq_times(a: Timing, b: Timing) -> Bool {
 
 pub fn normalise_times(a: Timing) -> Timing {
   case a {
-    At(times) -> At(list.sort(times, sort_times))
+    At(times) -> At(list.sort(times, compare_time))
     time_range -> time_range
-  }
-}
-
-pub fn sort_times(a: Time, b: Time) -> order.Order {
-  let Time(h1, m1) = a
-  let Time(h2, m2) = b
-
-  case int.compare(h1, h2) {
-    order.Eq -> int.compare(m1, m2)
-    order -> order
   }
 }
 
 /// Date and optional time "2024-01-01 at 09:00" or "2024-01-01"
 pub type BoundPoint {
-  BoundPoint(date: Date, time: Option(Time))
+  BoundPoint(date: Date, time: Time)
+}
+
+pub fn compare_bound_point(a: BoundPoint, b: BoundPoint) -> order.Order {
+  case compare_date(a.date, b.date) {
+    order.Eq -> compare_time(a.time, b.time)
+    order -> order
+  }
 }
 
 /// 2026-01-10
 pub type Date {
   Date(year: Int, month: Int, day: Int)
+}
+
+pub fn compare_date(a: Date, b: Date) -> order.Order {
+  case int.compare(a.year, b.year), int.compare(a.month, b.month) {
+    order.Eq, order.Eq -> int.compare(a.day, b.day)
+    order.Eq, order -> order
+    order, _ -> order
+  }
 }
 
 /// "starting ...", "starting ... until ..."

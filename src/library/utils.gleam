@@ -44,11 +44,6 @@ pub fn find_duplicates(xs: List(a), normal_f: fn(a) -> a) -> List(a) {
   |> dict.keys
 }
 
-/// Returns the intersection of two lists
-pub fn intersection(xs: List(a), ys: List(a)) -> List(a) {
-  list.filter(ys, fn(y) { list.contains(xs, y) })
-}
-
 pub fn debug(thing: a) {
   io.println("\n" <> string.inspect(thing))
 }
