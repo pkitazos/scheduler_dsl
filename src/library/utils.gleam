@@ -34,6 +34,17 @@ pub fn options_symmetric(a: Option(a), b: Option(b), err: e) -> Result(Nil, e) {
   }
 }
 
+pub fn no_duplicates(
+  xs: List(a),
+  normal_f: fn(a) -> a,
+  err_f: fn(List(a)) -> b,
+) -> Result(List(a), b) {
+  case find_duplicates(xs, normal_f) {
+    [] -> Ok(xs)
+    dups -> Error(err_f(dups))
+  }
+}
+
 /// Returns elements that appear multiple times in a list
 pub fn find_duplicates(xs: List(a), normal_f: fn(a) -> a) -> List(a) {
   xs

@@ -25,9 +25,8 @@ import library/overlap.{overlap_fmap, set_overlap}
 ///     [b] ------
 ///
 /// When ranges don't touch (e.g. 09:00-10:00 vs 11:00-12:00), returns `Disjoint`.
-///
-/// Returns `Error(Nil)` for mismatched variants (At vs TimeRange).
 pub fn overlap_with(a: ast.Timing, b: ast.Timing) -> overlap.Overlap(ast.Timing) {
+  // todo: assumes ranges are from < to, since we support wrap-around time ranges this isn't true
   case a, b {
     ast.At(t1), ast.At(t2) -> {
       set_overlap(t1, t2)
@@ -59,8 +58,8 @@ pub fn overlap_with(a: ast.Timing, b: ast.Timing) -> overlap.Overlap(ast.Timing)
     }
 
     ast.At(times), ast.TimeRange(from, to) -> {
-      let #(inside, _) =
-        list.partition(times, fn(time) {
+      let inside =
+        list.filter(times, fn(time) {
           case ast.compare_time(time, from), ast.compare_time(time, to) {
             order.Lt, _ | _, order.Gt -> False
             _, _ -> True
@@ -75,8 +74,8 @@ pub fn overlap_with(a: ast.Timing, b: ast.Timing) -> overlap.Overlap(ast.Timing)
     }
 
     ast.TimeRange(from, to), ast.At(times:) -> {
-      let #(inside, _) =
-        list.partition(times, fn(time) {
+      let inside =
+        list.filter(times, fn(time) {
           case ast.compare_time(time, from), ast.compare_time(time, to) {
             order.Lt, _ | _, order.Gt -> False
             _, _ -> True

@@ -1,9 +1,4 @@
 import gleam/function.{identity as id}
-import gleam/int
-import library/ast/timing
-import library/overlap
-
-// import gleam/io
 import gleam/list
 import gleam/order
 import gleam/result
@@ -11,7 +6,9 @@ import gleam/string
 import library/ast
 import library/ast/bounds
 import library/ast/days
-import library/utils.{find_duplicates, guard, option_try}
+import library/ast/timing
+import library/overlap
+import library/utils.{guard, no_duplicates, option_try}
 
 pub type ValidatorError {
   InvalidFrequency(String, ast.Frequency)
@@ -37,10 +34,10 @@ pub fn validate(schedule: ast.Schedule) -> Result(ast.Schedule, ValidatorError) 
     ast.OneOff(date, time) -> {
       use _date <- result.try(guard(
         date,
-        validate_date,
+        ast.check_date,
         InvalidDate("invalid date", date),
       ))
-      use _time <- result.try(validate_time_result(time))
+      use _time <- result.try(validate_time(time))
 
       Ok(schedule)
     }
@@ -70,19 +67,19 @@ fn validate_frequency(
 fn validate_timing(timing: ast.Timing) -> Result(ast.Timing, ValidatorError) {
   case timing {
     ast.TimeRange(from, to) if from == to -> {
-      use _from <- result.try(validate_time_result(from))
+      use _from <- result.try(validate_time(from))
       Error(InvalidTimeRange("invalid range", timing))
     }
 
     ast.TimeRange(from, to) -> {
-      use _from <- result.try(validate_time_result(from))
-      use _to <- result.try(validate_time_result(to))
+      use _from <- result.try(validate_time(from))
+      use _to <- result.try(validate_time(to))
       Ok(timing)
     }
 
     ast.At([]) -> Error(InvalidTimeList("empty list", []))
     ast.At(times) -> {
-      use _times <- result.try(list.try_map(times, validate_time_result))
+      use _times <- result.try(list.try_map(times, validate_time))
 
       use _times <- result.try(
         no_duplicates(times, id, fn(dups) {
@@ -141,27 +138,16 @@ pub fn validate_days(days: ast.Days) -> Result(ast.Days, ValidatorError) {
   }
 }
 
-fn no_duplicates(
-  xs: List(a),
-  normal_f: fn(a) -> a,
-  err_f: fn(List(a)) -> b,
-) -> Result(List(a), b) {
-  case find_duplicates(xs, normal_f) {
-    [] -> Ok(xs)
-    dups -> Error(err_f(dups))
-  }
-}
-
 fn validate_bounds(bounds: ast.Bounds) -> Result(ast.Bounds, ValidatorError) {
   case bounds {
     ast.Starting(ast.BoundPoint(date, time)) -> {
       use _date <- result.try(guard(
         date,
-        validate_date,
+        ast.check_date,
         InvalidDate("invalid date", date),
       ))
 
-      use _time <- result.try(validate_time_result(time))
+      use _time <- result.try(validate_time(time))
       Ok(bounds)
     }
 
@@ -171,19 +157,19 @@ fn validate_bounds(bounds: ast.Bounds) -> Result(ast.Bounds, ValidatorError) {
     ) -> {
       use start_date <- result.try(guard(
         start_date,
-        validate_date,
+        ast.check_date,
         InvalidDate("invalid date", start_date),
       ))
 
-      use start_time <- result.try(validate_time_result(start_time))
+      use start_time <- result.try(validate_time(start_time))
 
       use end_date <- result.try(guard(
         end_date,
-        validate_date,
+        ast.check_date,
         InvalidDate("invalid date", end_date),
       ))
 
-      use end_time <- result.try(validate_time_result(end_time))
+      use end_time <- result.try(validate_time(end_time))
 
       // use _ <- result.try(options_symmetric(
       //   start_time,
@@ -194,44 +180,16 @@ fn validate_bounds(bounds: ast.Bounds) -> Result(ast.Bounds, ValidatorError) {
       let start = ast.BoundPoint(start_date, start_time)
       let end = ast.BoundPoint(end_date, end_time)
 
-      case validate_bound_point_order(start, end) {
-        True -> Ok(bounds)
-        False ->
-          Error(InvalidBounds("end date must be after start date", bounds))
+      case ast.compare_bound_point(start, end) {
+        order.Lt -> Ok(bounds)
+        _ -> Error(InvalidBounds("end date must be after start date", bounds))
       }
     }
   }
 }
 
-fn validate_bound_point_order(
-  start: ast.BoundPoint,
-  end: ast.BoundPoint,
-) -> Bool {
-  ast.compare_bound_point(start, end) == order.Lt
-}
-
-fn validate_date(date: ast.Date) -> Bool {
-  let ast.Date(year, month, day) = date
-  let is_leap = year % 4 == 0 && { year % 100 != 0 || year % 400 == 0 }
-
-  let days_in_month = case month {
-    1 | 3 | 5 | 7 | 8 | 10 | 12 -> 31
-    4 | 6 | 9 | 11 -> 30
-    2 if is_leap -> 29
-    2 -> 28
-    _ -> 0
-  }
-
-  year >= 1 && month >= 1 && month <= 12 && day >= 1 && day <= days_in_month
-}
-
-fn validate_time(time: ast.Time) -> Bool {
-  let ast.Time(hour, minute) = time
-  hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59
-}
-
-fn validate_time_result(time: ast.Time) -> Result(ast.Time, ValidatorError) {
-  case validate_time(time) {
+fn validate_time(time: ast.Time) -> Result(ast.Time, ValidatorError) {
+  case ast.check_time(time) {
     True -> Ok(time)
     False -> Error(InvalidTime("invalid time", time))
   }
