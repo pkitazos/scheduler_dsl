@@ -36,6 +36,10 @@ pub type Time {
   Time(hour: Int, minute: Int)
 }
 
+pub fn check_time(t: Time) -> Bool {
+  t.hour >= 0 && t.hour <= 23 && t.minute >= 0 && t.minute <= 59
+}
+
 pub fn compare_time(a: Time, b: Time) -> order.Order {
   case int.compare(a.hour, b.hour) {
     order.Eq -> int.compare(a.minute, b.minute)
@@ -77,48 +81,48 @@ pub fn eq_days(a: Days, b: Days) -> Bool {
 
 pub fn normalise_days(a: Days) -> Days {
   case a {
-    SpecificDays(xs) -> xs |> list.sort(sort_days_of_week) |> SpecificDays()
+    SpecificDays(xs) -> xs |> list.sort(compare_days_of_week) |> SpecificDays()
 
     BareOrdinalDays(xs) ->
-      xs |> list.sort(sort_bare_ordinal_days) |> BareOrdinalDays()
+      xs |> list.sort(compare_bare_ordinal_days) |> BareOrdinalDays()
 
     QualifiedOrdinalDays(xs) ->
-      xs |> list.sort(sort_qualified_ordinal_days) |> QualifiedOrdinalDays()
+      xs |> list.sort(compare_qualified_ordinal_days) |> QualifiedOrdinalDays()
   }
 }
 
-/// Comparator for sorting days of the week in calendar order (Mon > Tue > ... > Sun).
-pub fn sort_days_of_week(a: DayOfWeek, b: DayOfWeek) -> order.Order {
+/// Comparator for sorting days of the week in calendar order (Mon < Tue < ... < Sun).
+pub fn compare_days_of_week(a: DayOfWeek, b: DayOfWeek) -> order.Order {
   case a, b {
     Mon, Mon -> order.Eq
-    Mon, _ -> order.Gt
+    Mon, _ -> order.Lt
 
-    Tue, Mon -> order.Lt
+    Tue, Mon -> order.Gt
     Tue, Tue -> order.Eq
-    Tue, _ -> order.Gt
+    Tue, _ -> order.Lt
 
-    Wed, Mon | Wed, Tue -> order.Lt
+    Wed, Mon | Wed, Tue -> order.Gt
     Wed, Wed -> order.Eq
-    Wed, _ -> order.Gt
+    Wed, _ -> order.Lt
 
-    Thu, Mon | Thu, Tue | Thu, Wed -> order.Lt
+    Thu, Mon | Thu, Tue | Thu, Wed -> order.Gt
     Thu, Thu -> order.Eq
-    Thu, _ -> order.Gt
+    Thu, _ -> order.Lt
 
-    Fri, Mon | Fri, Tue | Fri, Wed | Fri, Thu -> order.Lt
+    Fri, Sat | Fri, Sun -> order.Lt
     Fri, Fri -> order.Eq
     Fri, _ -> order.Gt
 
-    Sat, Sun -> order.Gt
+    Sat, Sun -> order.Lt
     Sat, Sat -> order.Eq
-    Sat, _ -> order.Lt
+    Sat, _ -> order.Gt
 
     Sun, Sun -> order.Eq
-    Sun, _ -> order.Lt
+    Sun, _ -> order.Gt
   }
 }
 
-pub fn sort_bare_ordinal_days(a: Ordinal, b: Ordinal) -> order.Order {
+pub fn compare_bare_ordinal_days(a: Ordinal, b: Ordinal) -> order.Order {
   case a, b {
     DayOfMonth(x), DayOfMonth(y) -> int.compare(x, y)
     DayOfMonth(_), LastDay -> order.Gt
@@ -126,17 +130,20 @@ pub fn sort_bare_ordinal_days(a: Ordinal, b: Ordinal) -> order.Order {
   }
 }
 
-pub fn sort_qualified_ordinal_days(a: NthWeekday, b: NthWeekday) -> order.Order {
+pub fn compare_qualified_ordinal_days(
+  a: NthWeekday,
+  b: NthWeekday,
+) -> order.Order {
   let NthWeekday(pos1, week_day1) = a
   let NthWeekday(pos2, week_day2) = b
 
-  case sort_position(pos1, pos2) {
-    order.Eq -> sort_days_of_week(week_day1, week_day2)
+  case compare_position(pos1, pos2) {
+    order.Eq -> compare_days_of_week(week_day1, week_day2)
     order -> order
   }
 }
 
-fn sort_position(a: Position, b: Position) -> order.Order {
+fn compare_position(a: Position, b: Position) -> order.Order {
   case a, b {
     First, First -> order.Eq
     First, _ -> order.Lt
@@ -227,6 +234,24 @@ pub fn compare_bound_point(a: BoundPoint, b: BoundPoint) -> order.Order {
 /// 2026-01-10
 pub type Date {
   Date(year: Int, month: Int, day: Int)
+}
+
+pub fn check_date(d: Date) -> Bool {
+  let is_leap = d.year % 4 == 0 && { d.year % 100 != 0 || d.year % 400 == 0 }
+
+  let days_in_month = case d.month {
+    1 | 3 | 5 | 7 | 8 | 10 | 12 -> 31
+    4 | 6 | 9 | 11 -> 30
+    2 if is_leap -> 29
+    2 -> 28
+    _ -> 0
+  }
+
+  d.year >= 1
+  && d.month >= 1
+  && d.month <= 12
+  && d.day >= 1
+  && d.day <= days_in_month
 }
 
 pub fn compare_date(a: Date, b: Date) -> order.Order {
