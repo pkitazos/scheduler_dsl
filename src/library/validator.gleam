@@ -203,33 +203,11 @@ fn validate_bounds(bounds: ast.Bounds) -> Result(ast.Bounds, ValidatorError) {
   }
 }
 
-fn date_cmp(d1: ast.Date, d2: ast.Date) -> order.Order {
-  case int.compare(d1.year, d2.year) {
-    order.Eq ->
-      case int.compare(d1.month, d2.month) {
-        order.Eq -> int.compare(d1.day, d2.day)
-        ord -> ord
-      }
-    ord -> ord
-  }
-}
-
-fn bound_point_cmp(b1: ast.BoundPoint, b2: ast.BoundPoint) -> order.Order {
-  case date_cmp(b1.date, b2.date) {
-    order.Eq ->
-      case int.compare(b1.time.hour, b2.time.hour) {
-        order.Eq -> int.compare(b1.time.minute, b2.time.minute)
-        ord -> ord
-      }
-    ord -> ord
-  }
-}
-
 fn validate_bound_point_order(
   start: ast.BoundPoint,
   end: ast.BoundPoint,
 ) -> Bool {
-  bound_point_cmp(start, end) == order.Lt
+  ast.compare_bound_point(start, end) == order.Lt
 }
 
 fn validate_date(date: ast.Date) -> Bool {
@@ -399,18 +377,16 @@ fn handle_time_range_simple_overlap(
     |> list.combination_pairs
     |> list.try_each(fn(p) {
       case timing.overlap_with(p.0, p.1) {
-        Ok(overlap.Subset(a, b)) -> {
+        overlap.Subset(a, b) -> {
           Error(InvalidExclusionsTime(
             string.inspect(a) <> " is contained within " <> string.inspect(b),
           ))
         }
-        Ok(overlap.Intersection(_, _, _)) -> {
+        overlap.Intersection(_, _, _) -> {
           // todo: make this a warning later on
           Ok(Nil)
         }
-        Ok(overlap.Disjoint) -> Ok(Nil)
-        // mismatched variants (At vs TimeRange) - no overlap to check
-        Error(_) -> Ok(Nil)
+        overlap.Disjoint -> Ok(Nil)
       }
     }),
   )
@@ -426,18 +402,16 @@ fn handle_bounds_simple_overlap(
     |> list.combination_pairs
     |> list.try_each(fn(p) {
       case bounds.overlap_with(p.0, p.1) {
-        Ok(overlap.Subset(a, b)) -> {
+        overlap.Subset(a, b) -> {
           Error(InvalidExclusionsBounds(
             string.inspect(a) <> " is contained within " <> string.inspect(b),
           ))
         }
-        Ok(overlap.Intersection(_, _, _)) -> {
+        overlap.Intersection(_, _, _) -> {
           // todo: make this a warning later on
           Ok(Nil)
         }
-        Ok(overlap.Disjoint) -> Ok(Nil)
-        // bounds.overlap_with is total, so this shouldn't happen
-        Error(_) -> Ok(Nil)
+        overlap.Disjoint -> Ok(Nil)
       }
     }),
   )

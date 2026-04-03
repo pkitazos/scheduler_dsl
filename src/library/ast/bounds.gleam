@@ -43,15 +43,12 @@ import library/overlap
 ///   2. Between/Starting:  to == starting       (Lt, Eq - line 38)
 ///   3. Between/Between:   b.from == a.to       (Lt, Lt inner Eq - line 52)
 ///   4. Between/Between:   a.from == b.to       (Gt, Gt inner Eq - line 60)
-pub fn overlap_with(
-  a: ast.Bounds,
-  b: ast.Bounds,
-) -> Result(overlap.Overlap(ast.Bounds), Nil) {
+pub fn overlap_with(a: ast.Bounds, b: ast.Bounds) -> overlap.Overlap(ast.Bounds) {
   case a, b {
     ast.Starting(s1), ast.Starting(s2) -> {
       case ast.compare_bound_point(s1, s2) {
-        order.Gt -> Ok(overlap.Subset(smaller: b, bigger: a))
-        _ -> Ok(overlap.Subset(smaller: a, bigger: b))
+        order.Gt -> overlap.Subset(smaller: b, bigger: a)
+        _ -> overlap.Subset(smaller: a, bigger: b)
       }
     }
 
@@ -61,9 +58,9 @@ pub fn overlap_with(
         ast.compare_bound_point(starting, to)
       {
         order.Gt, order.Lt ->
-          Ok(overlap.Intersection(a, b, ast.Between(from: starting, to: to)))
-        order.Gt, _ -> Ok(overlap.Disjoint)
-        _, _ -> Ok(overlap.Subset(smaller: b, bigger: a))
+          overlap.Intersection(a, b, ast.Between(from: starting, to: to))
+        order.Gt, _ -> overlap.Disjoint
+        _, _ -> overlap.Subset(smaller: b, bigger: a)
       }
     }
 
@@ -73,9 +70,9 @@ pub fn overlap_with(
         ast.compare_bound_point(to, starting)
       {
         order.Lt, order.Gt ->
-          Ok(overlap.Intersection(a, b, ast.Between(from: starting, to: to)))
-        order.Lt, _ -> Ok(overlap.Disjoint)
-        _, _ -> Ok(overlap.Subset(smaller: a, bigger: b))
+          overlap.Intersection(a, b, ast.Between(from: starting, to: to))
+        order.Lt, _ -> overlap.Disjoint
+        _, _ -> overlap.Subset(smaller: a, bigger: b)
       }
     }
 
@@ -87,21 +84,21 @@ pub fn overlap_with(
         order.Lt, order.Lt ->
           case ast.compare_bound_point(b.from, a.to) {
             order.Lt ->
-              Ok(overlap.Intersection(a, b, ast.Between(from: b.from, to: a.to)))
-            _ -> Ok(overlap.Disjoint)
+              overlap.Intersection(a, b, ast.Between(from: b.from, to: a.to))
+            _ -> overlap.Disjoint
           }
-        order.Lt, _ -> Ok(overlap.Subset(smaller: b, bigger: a))
+        order.Lt, _ -> overlap.Subset(smaller: b, bigger: a)
 
         order.Gt, order.Gt ->
           case ast.compare_bound_point(a.from, b.to) {
             order.Lt ->
-              Ok(overlap.Intersection(a, b, ast.Between(from: a.from, to: b.to)))
-            _ -> Ok(overlap.Disjoint)
+              overlap.Intersection(a, b, ast.Between(from: a.from, to: b.to))
+            _ -> overlap.Disjoint
           }
-        order.Gt, _ -> Ok(overlap.Subset(smaller: a, bigger: b))
+        order.Gt, _ -> overlap.Subset(smaller: a, bigger: b)
 
-        order.Eq, order.Gt -> Ok(overlap.Subset(smaller: b, bigger: a))
-        order.Eq, _ -> Ok(overlap.Subset(smaller: a, bigger: b))
+        order.Eq, order.Gt -> overlap.Subset(smaller: b, bigger: a)
+        order.Eq, _ -> overlap.Subset(smaller: a, bigger: b)
       }
     }
   }

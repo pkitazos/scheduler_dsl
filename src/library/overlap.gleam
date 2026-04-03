@@ -30,9 +30,13 @@ pub fn set_overlap(xs: List(a), ys: List(a)) -> Overlap(List(a)) {
       // and the overlap is the entire length of d1,
       // then it is a strict subset
       // otherwise they just have a non-empty intersection set
-      case list.length(overlap) == list.length(xs) {
-        False -> Intersection(xs, ys, overlap)
-        True -> Subset(xs, ys)
+      case
+        list.length(overlap) == list.length(xs),
+        list.length(overlap) == list.length(ys)
+      {
+        False, False -> Intersection(xs, ys, overlap)
+        False, True -> Subset(ys, xs)
+        True, _ -> Subset(xs, ys)
       }
   }
 }

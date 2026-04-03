@@ -27,40 +27,34 @@ import library/overlap.{overlap_fmap, set_overlap}
 /// When ranges don't touch (e.g. 09:00-10:00 vs 11:00-12:00), returns `Disjoint`.
 ///
 /// Returns `Error(Nil)` for mismatched variants (At vs TimeRange).
-pub fn overlap_with(
-  a: ast.Timing,
-  b: ast.Timing,
-) -> Result(overlap.Overlap(ast.Timing), Nil) {
+pub fn overlap_with(a: ast.Timing, b: ast.Timing) -> overlap.Overlap(ast.Timing) {
   case a, b {
     ast.At(t1), ast.At(t2) -> {
       set_overlap(t1, t2)
       |> overlap_fmap(ast.At)
-      |> Ok()
     }
 
     ast.TimeRange(from1, to1), ast.TimeRange(from2, to2) -> {
       case ast.compare_time(from1, from2), ast.compare_time(to1, to2) {
-        order.Lt, order.Gt -> Ok(overlap.Subset(smaller: b, bigger: a))
-        order.Lt, order.Eq -> Ok(overlap.Subset(smaller: b, bigger: a))
-        order.Eq, order.Gt -> Ok(overlap.Subset(smaller: b, bigger: a))
+        order.Lt, order.Gt -> overlap.Subset(smaller: b, bigger: a)
+        order.Lt, order.Eq -> overlap.Subset(smaller: b, bigger: a)
+        order.Eq, order.Gt -> overlap.Subset(smaller: b, bigger: a)
 
         order.Lt, order.Lt ->
           case ast.compare_time(from2, to1) {
-            order.Lt ->
-              Ok(overlap.Intersection(a, b, ast.TimeRange(from2, to1)))
-            _ -> Ok(overlap.Disjoint)
+            order.Lt -> overlap.Intersection(a, b, ast.TimeRange(from2, to1))
+            _ -> overlap.Disjoint
           }
 
         order.Gt, order.Gt ->
           case ast.compare_time(from1, to2) {
-            order.Lt ->
-              Ok(overlap.Intersection(a, b, ast.TimeRange(from1, to2)))
-            _ -> Ok(overlap.Disjoint)
+            order.Lt -> overlap.Intersection(a, b, ast.TimeRange(from1, to2))
+            _ -> overlap.Disjoint
           }
-        order.Gt, order.Lt -> Ok(overlap.Subset(smaller: a, bigger: b))
-        order.Gt, order.Eq -> Ok(overlap.Subset(smaller: a, bigger: b))
-        order.Eq, order.Eq -> Ok(overlap.Subset(smaller: a, bigger: b))
-        order.Eq, order.Lt -> Ok(overlap.Subset(smaller: a, bigger: b))
+        order.Gt, order.Lt -> overlap.Subset(smaller: a, bigger: b)
+        order.Gt, order.Eq -> overlap.Subset(smaller: a, bigger: b)
+        order.Eq, order.Eq -> overlap.Subset(smaller: a, bigger: b)
+        order.Eq, order.Lt -> overlap.Subset(smaller: a, bigger: b)
       }
     }
 
@@ -74,9 +68,9 @@ pub fn overlap_with(
         })
 
       case inside, list.length(inside) == list.length(times) {
-        [], _ -> Ok(overlap.Disjoint)
-        _, True -> Ok(overlap.Subset(smaller: a, bigger: b))
-        xs, False -> Ok(overlap.Intersection(a, b, ast.At(xs)))
+        [], _ -> overlap.Disjoint
+        _, True -> overlap.Subset(smaller: a, bigger: b)
+        xs, False -> overlap.Intersection(a, b, ast.At(xs))
       }
     }
 
@@ -90,9 +84,9 @@ pub fn overlap_with(
         })
 
       case inside, list.length(inside) == list.length(times) {
-        [], _ -> Ok(overlap.Disjoint)
-        _, True -> Ok(overlap.Subset(smaller: b, bigger: a))
-        xs, False -> Ok(overlap.Intersection(a, b, ast.At(xs)))
+        [], _ -> overlap.Disjoint
+        _, True -> overlap.Subset(smaller: b, bigger: a)
+        xs, False -> overlap.Intersection(a, b, ast.At(xs))
       }
     }
   }
