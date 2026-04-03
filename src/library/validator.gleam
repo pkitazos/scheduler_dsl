@@ -44,11 +44,12 @@ pub fn validate(schedule: ast.Schedule) -> Result(ast.Schedule, ValidatorError) 
 
       Ok(schedule)
     }
-    ast.Recurring(frequency, timing, days, bounds, _exclusions) -> {
+    ast.Recurring(frequency, timing, days, bounds, exclusions) -> {
       use _ <- result.try(validate_frequency(frequency))
       use _ <- result.try(option_try(timing, validate_timing))
       use _ <- result.try(option_try(days, validate_days))
       use _ <- result.try(option_try(bounds, validate_bounds))
+      use _ <- result.try(option_try(exclusions, validate_exclusions))
 
       Ok(schedule)
     }

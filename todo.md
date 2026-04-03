@@ -33,7 +33,7 @@
 - [x] all individual timing rules carry forward
       (validate hours/minutes, At: no duplicate times,
        TimeRange: from != to)
-- [ ] reject time exclusion that is a strict subset of another time exclusion
+- [x] reject time exclusion that is a strict subset of another time exclusion
       (e.g. "except at 09:00" is redundant alongside "except from 08:00 to 10:00")
 
 ### ExceptBounds

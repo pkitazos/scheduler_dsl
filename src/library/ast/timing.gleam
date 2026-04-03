@@ -1,3 +1,4 @@
+import gleam/list
 import gleam/order
 import library/ast
 import library/overlap.{overlap_fmap, set_overlap}
@@ -36,6 +37,7 @@ pub fn overlap_with(
       |> overlap_fmap(ast.At)
       |> Ok()
     }
+
     ast.TimeRange(from1, to1), ast.TimeRange(from2, to2) -> {
       case ast.compare_time(from1, from2), ast.compare_time(to1, to2) {
         order.Lt, order.Gt -> Ok(overlap.Subset(smaller: b, bigger: a))
@@ -61,6 +63,37 @@ pub fn overlap_with(
         order.Eq, order.Lt -> Ok(overlap.Subset(smaller: a, bigger: b))
       }
     }
-    _, _ -> Error(Nil)
+
+    ast.At(times), ast.TimeRange(from, to) -> {
+      let #(inside, _) =
+        list.partition(times, fn(time) {
+          case ast.compare_time(time, from), ast.compare_time(time, to) {
+            order.Lt, _ | _, order.Gt -> False
+            _, _ -> True
+          }
+        })
+
+      case inside, list.length(inside) == list.length(times) {
+        [], _ -> Ok(overlap.Disjoint)
+        _, True -> Ok(overlap.Subset(smaller: a, bigger: b))
+        xs, False -> Ok(overlap.Intersection(a, b, ast.At(xs)))
+      }
+    }
+
+    ast.TimeRange(from, to), ast.At(times:) -> {
+      let #(inside, _) =
+        list.partition(times, fn(time) {
+          case ast.compare_time(time, from), ast.compare_time(time, to) {
+            order.Lt, _ | _, order.Gt -> False
+            _, _ -> True
+          }
+        })
+
+      case inside, list.length(inside) == list.length(times) {
+        [], _ -> Ok(overlap.Disjoint)
+        _, True -> Ok(overlap.Subset(smaller: b, bigger: a))
+        xs, False -> Ok(overlap.Intersection(a, b, ast.At(xs)))
+      }
+    }
   }
 }
