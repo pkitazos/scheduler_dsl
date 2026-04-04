@@ -62,7 +62,7 @@ Besides obviously needing to test the compiler phases, we also ought to test oth
 
 - [x] all the utils
 - [x] the overlap module
-- [ ] the ast modules
-- [ ] the ast comparison functions
-- [ ] the ast check functions
-- [ ] the ast normalise functions
+- [ ] the ast modules (days, timing, bounds)
+- [x] the ast comparison functions
+- [x] the ast check functions
+- [x] the ast normalise functions
