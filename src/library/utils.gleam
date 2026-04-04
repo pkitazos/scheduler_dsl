@@ -6,7 +6,7 @@ import gleam/result
 import gleam/string
 
 /// Wraps a clause in a Result if it satisfies a predicate.
-pub fn guard(clause: a, f: fn(a) -> Bool, b) -> Result(a, b) {
+pub fn ensure(clause: a, f: fn(a) -> Bool, b) -> Result(a, b) {
   case f(clause) {
     True -> Ok(clause)
     False -> Error(b)
@@ -36,20 +36,20 @@ pub fn options_symmetric(a: Option(a), b: Option(b), err: e) -> Result(Nil, e) {
 
 pub fn no_duplicates(
   xs: List(a),
-  normal_f: fn(a) -> a,
+  key: fn(a) -> a,
   err_f: fn(List(a)) -> b,
 ) -> Result(List(a), b) {
-  case find_duplicates(xs, normal_f) {
+  case find_duplicates(xs, key) {
     [] -> Ok(xs)
     dups -> Error(err_f(dups))
   }
 }
 
 /// Returns elements that appear multiple times in a list
-pub fn find_duplicates(xs: List(a), normal_f: fn(a) -> a) -> List(a) {
+pub fn find_duplicates(xs: List(a), key: fn(a) -> a) -> List(a) {
   xs
   |> list.fold(dict.new(), fn(acc, x) {
-    dict.upsert(acc, normal_f(x), fn(count) { option.unwrap(count, 0) + 1 })
+    dict.upsert(acc, key(x), fn(count) { option.unwrap(count, 0) + 1 })
   })
   |> dict.filter(fn(_, value) { value > 1 })
   |> dict.keys

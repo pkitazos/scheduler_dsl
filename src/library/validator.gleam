@@ -8,7 +8,7 @@ import library/ast/bounds
 import library/ast/days
 import library/ast/timing
 import library/overlap
-import library/utils.{guard, no_duplicates, option_try}
+import library/utils.{ensure, no_duplicates, option_try}
 
 pub type ValidatorError {
   InvalidFrequency(String, ast.Frequency)
@@ -33,7 +33,7 @@ pub type ValidatorError {
 pub fn validate(schedule: ast.Schedule) -> Result(ast.Schedule, ValidatorError) {
   case schedule {
     ast.OneOff(date, time) -> {
-      use _date <- result.try(guard(
+      use _date <- result.try(ensure(
         date,
         ast.check_date,
         InvalidDate("invalid date", date),
@@ -147,7 +147,7 @@ pub fn validate_days(days: ast.Days) -> Result(ast.Days, ValidatorError) {
 fn validate_bounds(bounds: ast.Bounds) -> Result(ast.Bounds, ValidatorError) {
   case bounds {
     ast.Starting(ast.BoundPoint(date, time)) -> {
-      use _date <- result.try(guard(
+      use _date <- result.try(ensure(
         date,
         ast.check_date,
         InvalidDate("invalid date", date),
@@ -161,7 +161,7 @@ fn validate_bounds(bounds: ast.Bounds) -> Result(ast.Bounds, ValidatorError) {
       ast.BoundPoint(start_date, start_time),
       ast.BoundPoint(end_date, end_time),
     ) -> {
-      use start_date <- result.try(guard(
+      use start_date <- result.try(ensure(
         start_date,
         ast.check_date,
         InvalidDate("invalid date", start_date),
@@ -169,7 +169,7 @@ fn validate_bounds(bounds: ast.Bounds) -> Result(ast.Bounds, ValidatorError) {
 
       use start_time <- result.try(validate_time(start_time))
 
-      use end_date <- result.try(guard(
+      use end_date <- result.try(ensure(
         end_date,
         ast.check_date,
         InvalidDate("invalid date", end_date),
