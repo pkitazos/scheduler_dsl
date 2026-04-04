@@ -303,6 +303,10 @@ fn handle_day_list_simple_overlap(
           // genuinely no overlap, this one is fine to pass through
           Ok(Nil)
         }
+        Ok(overlap.Adjacent(_, _, _)) -> {
+          // not possible with day lists
+          Ok(Nil)
+        }
         Error(_) -> {
           // ordinal-vs-non-ordinal overlap may be handled in a separate pass
           // since it requires bounds context to resolve
@@ -344,6 +348,10 @@ fn handle_time_range_simple_overlap(
           // todo: make this a warning later on
           Ok(Nil)
         }
+        overlap.Adjacent(_, _, _) -> {
+          // todo: make this a warning later on
+          Ok(Nil)
+        }
         overlap.Disjoint -> Ok(Nil)
       }
     }),
@@ -366,6 +374,10 @@ fn handle_bounds_simple_overlap(
           ))
         }
         overlap.Intersection(_, _, _) -> {
+          // todo: make this a warning later on
+          Ok(Nil)
+        }
+        overlap.Adjacent(_, _, _) -> {
           // todo: make this a warning later on
           Ok(Nil)
         }

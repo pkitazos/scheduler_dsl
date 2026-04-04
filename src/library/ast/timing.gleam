@@ -42,13 +42,15 @@ pub fn overlap_with(a: ast.Timing, b: ast.Timing) -> overlap.Overlap(ast.Timing)
         order.Lt, order.Lt ->
           case ast.compare_time(from2, to1) {
             order.Lt -> overlap.Intersection(a, b, ast.TimeRange(from2, to1))
-            _ -> overlap.Disjoint
+            order.Eq -> overlap.Adjacent(a, b, ast.TimeRange(from2, to1))
+            order.Gt -> overlap.Disjoint
           }
 
         order.Gt, order.Gt ->
           case ast.compare_time(from1, to2) {
             order.Lt -> overlap.Intersection(a, b, ast.TimeRange(from1, to2))
-            _ -> overlap.Disjoint
+            order.Eq -> overlap.Adjacent(a, b, ast.TimeRange(from1, to2))
+            order.Gt -> overlap.Disjoint
           }
         order.Gt, order.Lt -> overlap.Subset(smaller: a, bigger: b)
         order.Gt, order.Eq -> overlap.Subset(smaller: a, bigger: b)

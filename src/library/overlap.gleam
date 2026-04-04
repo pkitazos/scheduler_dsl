@@ -4,6 +4,7 @@ pub type Overlap(a) {
   Subset(smaller: a, bigger: a)
   Intersection(a, a, a)
   Disjoint
+  Adjacent(a, a, a)
 }
 
 /// Transforms the inner type of an `Overlap` value while preserving
@@ -13,6 +14,7 @@ pub fn overlap_fmap(x: Overlap(List(a)), f: fn(List(a)) -> b) -> Overlap(b) {
     Subset(a, b) -> Subset(f(a), f(b))
     Intersection(a, b, c) -> Intersection(f(a), f(b), f(c))
     Disjoint -> Disjoint
+    Adjacent(a, b, c) -> Adjacent(f(a), f(b), f(c))
   }
 }
 
