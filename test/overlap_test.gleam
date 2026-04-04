@@ -155,9 +155,5 @@ pub fn fmap_disjoint_test() {
 pub fn fmap_adjacent_test() {
   overlap.Adjacent([1, 2], [3, 4], [1, 2, 3, 4])
   |> overlap.overlap_fmap(Box)
-  |> should.equal(overlap.Adjacent(
-    Box([1, 2]),
-    Box([3, 4]),
-    Box([1, 2, 3, 4]),
-  ))
+  |> should.equal(overlap.Adjacent(Box([1, 2]), Box([3, 4]), Box([1, 2, 3, 4])))
 }

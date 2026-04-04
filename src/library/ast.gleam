@@ -126,7 +126,8 @@ pub fn compare_bare_ordinal_days(a: Ordinal, b: Ordinal) -> order.Order {
   case a, b {
     DayOfMonth(x), DayOfMonth(y) -> int.compare(x, y)
     DayOfMonth(_), LastDay -> order.Gt
-    LastDay, _ -> order.Lt
+    LastDay, DayOfMonth(_) -> order.Lt
+    LastDay, LastDay -> order.Eq
   }
 }
 
