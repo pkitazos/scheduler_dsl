@@ -220,7 +220,7 @@ pub fn normalise_times(a: Timing) -> Timing {
   }
 }
 
-/// Date and optional time "2024-01-01 at 09:00" or "2024-01-01"
+/// Date and time "2024-01-01 at 09:00"
 pub type BoundPoint {
   BoundPoint(date: Date, time: Time)
 }
