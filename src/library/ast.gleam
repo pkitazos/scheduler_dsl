@@ -2,7 +2,7 @@ import gleam/int
 import gleam/list
 import gleam/option.{type Option}
 import gleam/order
-import library/ast/multiset
+import library/multiset
 
 /// complete schedule expression
 pub type Schedule {

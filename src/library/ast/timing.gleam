@@ -3,11 +3,11 @@ import gleam/order
 import library/ast
 import library/overlap.{overlap_fmap, set_overlap}
 
-/// Computes the overlap between two `Timing` values of the same variant.
+/// Computes the overlap between two `Timing` values.
 ///
-/// For `At` lists, delegates to `set_overlap` for element-wise comparison.
+/// **At / At** — delegates to `set_overlap` for element-wise comparison.
 ///
-/// For `TimeRange` pairs, compares the `from` and `to` endpoints:
+/// **TimeRange / TimeRange** — compares `from` and `to` endpoints:
 ///
 ///     [a] ----------         Subset(b, a)  - a starts earlier, ends later/same
 ///     [b]    ----
@@ -15,8 +15,8 @@ import library/overlap.{overlap_fmap, set_overlap}
 ///     [a] ------             Intersection  - a starts earlier, ends earlier
 ///     [b]      ------        (overlap region: from2..to1)
 ///
-///     [a]      ------        Intersection  - a starts later, ends later
-///     [b] ------             (overlap region: from1..to2)
+///     [a] ------  |          Adjacent      - a ends exactly where b starts
+///     [b]         | ------   (touching at a single point)
 ///
 ///     [a]    ----            Subset(a, b)  - b starts earlier, ends later/same
 ///     [b] ----------
@@ -24,7 +24,10 @@ import library/overlap.{overlap_fmap, set_overlap}
 ///     [a] ------             Subset(a, b)  - equal ranges (a treated as smaller)
 ///     [b] ------
 ///
-/// When ranges don't touch (e.g. 09:00-10:00 vs 11:00-12:00), returns `Disjoint`.
+///     [a] ---     [b] ---    Disjoint      - ranges don't touch
+///
+/// **At / TimeRange** (and mirror) — filters times that fall within the range:
+/// all inside → `Subset`, some inside → `Intersection`, none → `Disjoint`.
 pub fn overlap_with(a: ast.Timing, b: ast.Timing) -> overlap.Overlap(ast.Timing) {
   // todo: assumes ranges are from < to, since we support wrap-around time ranges this isn't true
   case a, b {
