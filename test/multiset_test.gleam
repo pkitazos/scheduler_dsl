@@ -1,6 +1,6 @@
 import gleam/list
 import gleeunit/should
-import library/ast/multiset
+import library/multiset
 
 // --- from_list / size
 

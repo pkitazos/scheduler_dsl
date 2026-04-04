@@ -7,7 +7,7 @@ import library/overlap.{overlap_fmap, set_overlap}
 /// `Ok(Intersection(a, b, shared))` when they partially overlap,
 /// `Ok(Disjoint)` when they share nothing, or `Error(Nil)` when
 /// the two values are of different `Days` variants (e.g. `SpecificDays`
-/// vs `OrdinalDays`), since cross-variant comparison is not meaningful.
+/// vs `BareOrdinalDays`), since cross-variant comparison is not meaningful.
 ///
 /// The original `ast.Days` values are preserved in the result so that
 /// error messages can refer to what the user actually wrote.

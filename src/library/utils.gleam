@@ -34,6 +34,8 @@ pub fn options_symmetric(a: Option(a), b: Option(b), err: e) -> Result(Nil, e) {
   }
 }
 
+/// Returns `Ok(xs)` if all elements are unique (after applying `key`),
+/// or `Error(err_f(duplicates))` with the duplicate keys.
 pub fn no_duplicates(
   xs: List(a),
   key: fn(a) -> a,
@@ -45,7 +47,8 @@ pub fn no_duplicates(
   }
 }
 
-/// Returns elements that appear multiple times in a list
+/// Returns the normalised keys that appear more than once in `xs`.
+/// The `key` function is applied to each element before counting.
 pub fn find_duplicates(xs: List(a), key: fn(a) -> a) -> List(a) {
   xs
   |> list.fold(dict.new(), fn(acc, x) {
