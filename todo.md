@@ -60,7 +60,7 @@ So our `no_duplicates` check doesn't quite work.
 
 Besides obviously needing to test the compiler phases, we also ought to test other parts of the project
 
-- [ ] all the utils
+- [x] all the utils
 - [x] the overlap module
 - [ ] the ast modules
 - [ ] the ast comparison functions
