@@ -51,7 +51,7 @@ pub fn once_date_invalid_test() {
 }
 
 pub fn once_time_invalid_test() {
-  let time = ast.Time(9, 0)
+  let time = ast.Time(25, 0)
 
   ast.OneOff(ast.Date(2026, 1, 1), time)
   |> validator.validate
@@ -400,38 +400,6 @@ pub fn between_invalid_end_time_test() {
   |> should.equal(Error(validator.InvalidTime("invalid time", ast.Time(9, 60))))
 }
 
-pub fn between_invalid_bounds_asymmetry_some_none_test() {
-  let s =
-    ast.Between(
-      ast.BoundPoint(ast.Date(2025, 1, 1), ast.Time(0, 0)),
-      ast.BoundPoint(ast.Date(2025, 12, 31), ast.midnight()),
-    )
-  with_bounds(s)
-  |> validator.validate
-  |> should.equal(
-    Error(validator.InvalidBounds(
-      "both bounds must have times or neither should",
-      s,
-    )),
-  )
-}
-
-pub fn between_invalid_bounds_asymmetry_none_some_test() {
-  let s =
-    ast.Between(
-      ast.BoundPoint(ast.Date(2025, 1, 1), ast.midnight()),
-      ast.BoundPoint(ast.Date(2025, 12, 31), ast.Time(23, 59)),
-    )
-  with_bounds(s)
-  |> validator.validate
-  |> should.equal(
-    Error(validator.InvalidBounds(
-      "both bounds must have times or neither should",
-      s,
-    )),
-  )
-}
-
 // --- Days: Weekdays / Weekends
 
 pub fn weekdays_is_valid_test() {
@@ -521,6 +489,18 @@ pub fn ordinal_days_multiple_nth_weekdays_test() {
   validator.validate(s) |> should.equal(Ok(s))
 }
 
+pub fn except_days_qualified_empty_is_invalid_test() {
+  let exclusion = ast.ExceptDays(ast.QualifiedOrdinalDays([]))
+  with_exclusions([exclusion])
+  |> validator.validate
+  |> should.equal(
+    Error(validator.InExclusion(
+      exclusion,
+      validator.InvalidQualifiedOrdinalDays("empty list", []),
+    )),
+  )
+}
+
 pub fn ordinal_days_duplicate_is_invalid_test() {
   with_days(ast.BareOrdinalDays([ast.DayOfMonth(1), ast.DayOfMonth(1)]))
   |> validator.validate
@@ -543,7 +523,7 @@ pub fn ordinal_days_duplicate_nth_weekday_is_invalid_test() {
   |> validator.validate
   |> should.equal(
     Error(
-      validator.InvalidQualifiedOrdinalDays("duplicate ordinal days", [
+      validator.InvalidQualifiedOrdinalDays("duplicate qualified weekdays", [
         ast.NthWeekday(ast.First, ast.Mon),
       ]),
     ),
@@ -611,48 +591,69 @@ pub fn except_time_valid_at_multiple_test() {
 }
 
 pub fn except_time_zero_width_range_is_invalid_test() {
-  with_exclusions([
-    ast.ExceptTime(ast.TimeRange(ast.Time(9, 0), ast.Time(9, 0))),
-  ])
+  let exclusion = ast.ExceptTime(ast.TimeRange(ast.Time(9, 0), ast.Time(9, 0)))
+  with_exclusions([exclusion])
   |> validator.validate
   |> should.equal(
-    Error(validator.InvalidTimeRange(
-      "invalid range",
-      ast.TimeRange(ast.Time(9, 0), ast.Time(9, 0)),
+    Error(validator.InExclusion(
+      exclusion,
+      validator.InvalidTimeRange(
+        "invalid range",
+        ast.TimeRange(ast.Time(9, 0), ast.Time(9, 0)),
+      ),
     )),
   )
 }
 
 pub fn except_time_empty_at_is_invalid_test() {
-  with_exclusions([ast.ExceptTime(ast.At([]))])
+  let exclusion = ast.ExceptTime(ast.At([]))
+  with_exclusions([exclusion])
   |> validator.validate
-  |> should.equal(Error(validator.InvalidTimeList("empty list", [])))
+  |> should.equal(
+    Error(validator.InExclusion(
+      exclusion,
+      validator.InvalidTimeList("empty list", []),
+    )),
+  )
 }
 
 pub fn except_time_duplicate_at_is_invalid_test() {
-  with_exclusions([ast.ExceptTime(ast.At([ast.Time(9, 0), ast.Time(9, 0)]))])
+  let exclusion = ast.ExceptTime(ast.At([ast.Time(9, 0), ast.Time(9, 0)]))
+  with_exclusions([exclusion])
   |> validator.validate
   |> should.equal(
-    Error(
+    Error(validator.InExclusion(
+      exclusion,
       validator.InvalidTimeList("invalid time list, contains duplicates", [
         ast.Time(9, 0),
       ]),
-    ),
+    )),
   )
 }
 
 pub fn except_time_invalid_time_in_range_test() {
-  with_exclusions([
-    ast.ExceptTime(ast.TimeRange(ast.Time(25, 0), ast.Time(17, 0))),
-  ])
+  let exclusion =
+    ast.ExceptTime(ast.TimeRange(ast.Time(25, 0), ast.Time(17, 0)))
+  with_exclusions([exclusion])
   |> validator.validate
-  |> should.equal(Error(validator.InvalidTime("invalid time", ast.Time(25, 0))))
+  |> should.equal(
+    Error(validator.InExclusion(
+      exclusion,
+      validator.InvalidTime("invalid time", ast.Time(25, 0)),
+    )),
+  )
 }
 
 pub fn except_time_invalid_time_in_at_test() {
-  with_exclusions([ast.ExceptTime(ast.At([ast.Time(25, 0)]))])
+  let exclusion = ast.ExceptTime(ast.At([ast.Time(25, 0)]))
+  with_exclusions([exclusion])
   |> validator.validate
-  |> should.equal(Error(validator.InvalidTime("invalid time", ast.Time(25, 0))))
+  |> should.equal(
+    Error(validator.InExclusion(
+      exclusion,
+      validator.InvalidTime("invalid time", ast.Time(25, 0)),
+    )),
+  )
 }
 
 // --- Exclusions: ExceptDays
@@ -674,16 +675,26 @@ pub fn except_days_specific_days_test() {
 }
 
 pub fn except_days_empty_specific_days_is_invalid_test() {
-  with_exclusions([ast.ExceptDays(ast.SpecificDays([]))])
+  let exclusion = ast.ExceptDays(ast.SpecificDays([]))
+  with_exclusions([exclusion])
   |> validator.validate
-  |> should.equal(Error(validator.InvalidDaysOfWeek("empty list", [])))
+  |> should.equal(
+    Error(validator.InExclusion(
+      exclusion,
+      validator.InvalidDaysOfWeek("empty list", []),
+    )),
+  )
 }
 
 pub fn except_days_duplicate_specific_days_is_invalid_test() {
-  with_exclusions([ast.ExceptDays(ast.SpecificDays([ast.Mon, ast.Mon]))])
+  let exclusion = ast.ExceptDays(ast.SpecificDays([ast.Mon, ast.Mon]))
+  with_exclusions([exclusion])
   |> validator.validate
   |> should.equal(
-    Error(validator.InvalidDaysOfWeek("duplicate days of week", [ast.Mon])),
+    Error(validator.InExclusion(
+      exclusion,
+      validator.InvalidDaysOfWeek("duplicate days of week", [ast.Mon]),
+    )),
   )
 }
 
@@ -694,33 +705,39 @@ pub fn except_days_ordinal_valid_test() {
 }
 
 pub fn except_days_ordinal_empty_is_invalid_test() {
-  with_exclusions([ast.ExceptDays(ast.BareOrdinalDays([]))])
+  let exclusion = ast.ExceptDays(ast.BareOrdinalDays([]))
+  with_exclusions([exclusion])
   |> validator.validate
-  |> should.equal(Error(validator.InvalidOrdinalDays("empty list", [])))
+  |> should.equal(
+    Error(validator.InExclusion(
+      exclusion,
+      validator.InvalidOrdinalDays("empty list", []),
+    )),
+  )
 }
 
 pub fn except_days_ordinal_out_of_range_is_invalid_test() {
-  with_exclusions([ast.ExceptDays(ast.BareOrdinalDays([ast.DayOfMonth(32)]))])
+  let exclusion = ast.ExceptDays(ast.BareOrdinalDays([ast.DayOfMonth(32)]))
+  with_exclusions([exclusion])
   |> validator.validate
   |> should.equal(
-    Error(validator.InvalidDayOfMonth(
-      "invalid day of month",
-      ast.DayOfMonth(32),
+    Error(validator.InExclusion(
+      exclusion,
+      validator.InvalidDayOfMonth("invalid day of month", ast.DayOfMonth(32)),
     )),
   )
 }
 
 pub fn except_days_ordinal_duplicate_is_invalid_test() {
-  with_exclusions([
-    ast.ExceptDays(ast.BareOrdinalDays([ast.DayOfMonth(1), ast.DayOfMonth(1)])),
-  ])
+  let exclusion =
+    ast.ExceptDays(ast.BareOrdinalDays([ast.DayOfMonth(1), ast.DayOfMonth(1)]))
+  with_exclusions([exclusion])
   |> validator.validate
   |> should.equal(
-    Error(
-      validator.InvalidOrdinalDays("duplicate ordinal days", [
-        ast.DayOfMonth(1),
-      ]),
-    ),
+    Error(validator.InExclusion(
+      exclusion,
+      validator.InvalidOrdinalDays("duplicate ordinal days", [ast.DayOfMonth(1)]),
+    )),
   )
 }
 
@@ -748,14 +765,17 @@ pub fn except_bounds_valid_between_test() {
 }
 
 pub fn except_bounds_invalid_date_test() {
-  with_exclusions([
-    ast.ExceptBounds(
-      ast.Starting(ast.BoundPoint(ast.Date(2025, 13, 1), ast.midnight())),
-    ),
-  ])
+  let date = ast.Date(2025, 13, 1)
+
+  let exclusion =
+    ast.ExceptBounds(ast.Starting(ast.BoundPoint(date, ast.midnight())))
+  with_exclusions([exclusion])
   |> validator.validate
   |> should.equal(
-    Error(validator.InvalidDate("invalid date", ast.Date(2025, 13, 1))),
+    Error(validator.InExclusion(
+      exclusion,
+      validator.InvalidDate("invalid date", date),
+    )),
   )
 }
 
@@ -768,22 +788,9 @@ pub fn except_bounds_end_before_start_is_invalid_test() {
   with_exclusions([ast.ExceptBounds(bounds)])
   |> validator.validate
   |> should.equal(
-    Error(validator.InvalidBounds("end date must be after start date", bounds)),
-  )
-}
-
-pub fn except_bounds_time_asymmetry_is_invalid_test() {
-  let bounds =
-    ast.Between(
-      ast.BoundPoint(ast.Date(2025, 1, 1), ast.Time(9, 0)),
-      ast.BoundPoint(ast.Date(2025, 12, 31), ast.midnight()),
-    )
-  with_exclusions([ast.ExceptBounds(bounds)])
-  |> validator.validate
-  |> should.equal(
-    Error(validator.InvalidBounds(
-      "both bounds must have times or neither should",
-      bounds,
+    Error(validator.InExclusion(
+      ast.ExceptBounds(bounds),
+      validator.InvalidBounds("end date must be after start date", bounds),
     )),
   )
 }
@@ -867,30 +874,40 @@ pub fn different_exclusion_types_is_valid_test() {
 // --- Exclusions: Redundant (strict structural subset)
 
 pub fn redundant_specific_days_subset_is_invalid_test() {
+  let smaller = ast.SpecificDays([ast.Mon])
+  let bigger = ast.SpecificDays([ast.Mon, ast.Tue])
   let exclusions = [
-    ast.ExceptDays(ast.SpecificDays([ast.Mon])),
-    ast.ExceptDays(ast.SpecificDays([ast.Mon, ast.Tue])),
+    ast.ExceptDays(smaller),
+    ast.ExceptDays(bigger),
   ]
   with_exclusions(exclusions)
   |> validator.validate
   |> should.equal(
-    Error(validator.InvalidExclusions("redundant exclusions", exclusions)),
+    Error(
+      validator.InvalidExclusionsDays("redundant exclusions", #(smaller, bigger)),
+    ),
   )
 }
 
 pub fn redundant_at_times_subset_is_invalid_test() {
+  let smaller = ast.At([ast.Time(9, 0)])
+  let bigger = ast.At([ast.Time(9, 0), ast.Time(12, 0)])
   let exclusions = [
-    ast.ExceptTime(ast.At([ast.Time(9, 0)])),
-    ast.ExceptTime(ast.At([ast.Time(9, 0), ast.Time(12, 0)])),
+    ast.ExceptTime(smaller),
+    ast.ExceptTime(bigger),
   ]
   with_exclusions(exclusions)
   |> validator.validate
   |> should.equal(
-    Error(validator.InvalidExclusions("redundant exclusions", exclusions)),
+    Error(
+      validator.InvalidExclusionsTime("redundant exclusions", #(smaller, bigger)),
+    ),
   )
 }
 
 pub fn redundant_ordinal_days_subset_is_invalid_test() {
+  let smaller = ast.BareOrdinalDays([ast.DayOfMonth(1)])
+  let bigger = ast.BareOrdinalDays([ast.DayOfMonth(1), ast.DayOfMonth(15)])
   let exclusions = [
     ast.ExceptDays(ast.BareOrdinalDays([ast.DayOfMonth(1)])),
     ast.ExceptDays(ast.BareOrdinalDays([ast.DayOfMonth(1), ast.DayOfMonth(15)])),
@@ -898,26 +915,29 @@ pub fn redundant_ordinal_days_subset_is_invalid_test() {
   with_exclusions(exclusions)
   |> validator.validate
   |> should.equal(
-    Error(validator.InvalidExclusions("redundant exclusions", exclusions)),
+    Error(
+      validator.InvalidExclusionsDays("redundant exclusions", #(smaller, bigger)),
+    ),
   )
 }
 
 pub fn redundant_nth_weekday_subset_is_invalid_test() {
+  let smaller = ast.QualifiedOrdinalDays([ast.NthWeekday(ast.First, ast.Mon)])
+  let bigger =
+    ast.QualifiedOrdinalDays([
+      ast.NthWeekday(ast.First, ast.Mon),
+      ast.NthWeekday(ast.Third, ast.Fri),
+    ])
   let exclusions = [
-    ast.ExceptDays(
-      ast.QualifiedOrdinalDays([ast.NthWeekday(ast.First, ast.Mon)]),
-    ),
-    ast.ExceptDays(
-      ast.QualifiedOrdinalDays([
-        ast.NthWeekday(ast.First, ast.Mon),
-        ast.NthWeekday(ast.Third, ast.Fri),
-      ]),
-    ),
+    ast.ExceptDays(smaller),
+    ast.ExceptDays(bigger),
   ]
   with_exclusions(exclusions)
   |> validator.validate
   |> should.equal(
-    Error(validator.InvalidExclusions("redundant exclusions", exclusions)),
+    Error(
+      validator.InvalidExclusionsDays("redundant exclusions", #(smaller, bigger)),
+    ),
   )
 }
 

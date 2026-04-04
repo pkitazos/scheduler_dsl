@@ -23,8 +23,9 @@ pub type ValidatorError {
   InvalidDate(String, ast.Date)
   InvalidQualifiedOrdinalDays(String, List(ast.NthWeekday))
   InvalidExclusions(String, List(ast.Exclusion))
-  InvalidExclusionsDays(String)
-  InvalidExclusionsTime(String)
+  InvalidExclusionsDays(String, #(ast.Days, ast.Days))
+  InvalidExclusionsDaysMixing(String)
+  InvalidExclusionsTime(String, #(ast.Timing, ast.Timing))
   InvalidExclusionsBounds(String)
   InExclusion(ast.Exclusion, ValidatorError)
 }
@@ -106,6 +107,8 @@ pub fn validate_days(days: ast.Days) -> Result(ast.Days, ValidatorError) {
       Ok(days)
     }
 
+    ast.BareOrdinalDays([]) -> Error(InvalidOrdinalDays("empty list", []))
+
     ast.BareOrdinalDays(ordinals) -> {
       use _ordinals <- result.try(
         no_duplicates(ordinals, id, fn(dups) {
@@ -125,6 +128,9 @@ pub fn validate_days(days: ast.Days) -> Result(ast.Days, ValidatorError) {
 
       Ok(days)
     }
+
+    ast.QualifiedOrdinalDays([]) ->
+      Error(InvalidQualifiedOrdinalDays("empty list", []))
 
     ast.QualifiedOrdinalDays(qualified_weekdays) -> {
       use _days_of_week <- result.try(
@@ -199,7 +205,7 @@ pub fn validate_exclusions(
   exclusions: List(ast.Exclusion),
 ) -> Result(List(ast.Exclusion), ValidatorError) {
   case exclusions {
-    [] -> Error(InvalidExclusions("empty list", []))
+    [] -> Error(InvalidExclusions("empty exclusions list", []))
     xs -> {
       use _ <- result.try(
         no_duplicates(xs, ast.normalise_exclusion, fn(dups) {
@@ -291,9 +297,7 @@ fn handle_day_list_simple_overlap(
     |> list.try_each(fn(p) {
       case days.overlap_with(p.0, p.1) {
         Ok(overlap.Subset(a, b)) -> {
-          Error(InvalidExclusionsDays(
-            string.inspect(a) <> " is contained within " <> string.inspect(b),
-          ))
+          Error(InvalidExclusionsDays("redundant exclusions", #(a, b)))
         }
         Ok(overlap.Intersection(_, _, _)) -> {
           // todo: make this a warning later on
@@ -311,7 +315,7 @@ fn handle_day_list_simple_overlap(
           // ordinal-vs-non-ordinal overlap may be handled in a separate pass
           // since it requires bounds context to resolve
           // or it may just not be allowed
-          Error(InvalidExclusionsDays(
+          Error(InvalidExclusionsDaysMixing(
             "cannot mix Ordinal and Week days in the same schedule",
           ))
         }
@@ -340,9 +344,7 @@ fn handle_time_range_simple_overlap(
     |> list.try_each(fn(p) {
       case timing.overlap_with(p.0, p.1) {
         overlap.Subset(a, b) -> {
-          Error(InvalidExclusionsTime(
-            string.inspect(a) <> " is contained within " <> string.inspect(b),
-          ))
+          Error(InvalidExclusionsTime("redundant exclusions", #(a, b)))
         }
         overlap.Intersection(_, _, _) -> {
           // todo: make this a warning later on
